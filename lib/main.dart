@@ -23,6 +23,7 @@ void main() async {
         getAllMedications: sl(),
         createMedication: sl(),
         deleteMedication: sl(),
+        editMedication: sl(),
       )..add(FetchAllMedications()),
       child: const MyApp(),
     ),

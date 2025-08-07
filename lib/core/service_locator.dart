@@ -7,6 +7,7 @@ import '../features/medication_reminder/domain/repositories/medication_repositor
 import '../features/medication_reminder/data/models/medication_model.dart';
 import '../features/medication_reminder/domain/use_cases/create_medication.dart';
 import '../features/medication_reminder/domain/use_cases/delete_medication.dart';
+import '../features/medication_reminder/domain/use_cases/edit_medication.dart';
 import '../features/medication_reminder/domain/use_cases/get_all_medications.dart';
 
 final sl = GetIt.instance;
@@ -23,4 +24,5 @@ void setupLocator(Box<MedicationModel> box) {
   sl.registerLazySingleton<GetAllMedications>(() => GetAllMedications(sl()));
   sl.registerLazySingleton<CreateMedication>(() => CreateMedication(sl()));
   sl.registerLazySingleton<DeleteMedication>(() => DeleteMedication(sl()));
+  sl.registerLazySingleton<EditMedication>(() => EditMedication(sl()));
 }

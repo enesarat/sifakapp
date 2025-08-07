@@ -15,7 +15,7 @@ class MedicationMapper {
       totalPills: model.totalPills,
       dailyDosage: model.dailyDosage,
       isManualSchedule: model.isManualSchedule,
-      manualTimes: model.manualTimes?.map(_parseTime).toList(),
+      reminderTimes: model.reminderTimes?.map(_parseTime).toList(),
       hoursBeforeOrAfterMeal: model.hoursBeforeOrAfterMeal,
       isAfterMeal: model.isAfterMeal,
     );
@@ -32,7 +32,7 @@ class MedicationMapper {
       totalPills: entity.totalPills,
       dailyDosage: entity.dailyDosage,
       isManualSchedule: entity.isManualSchedule,
-      manualTimes: entity.manualTimes?.map(_formatTime).toList(),
+      reminderTimes: entity.reminderTimes?.map(_formatTime).toList(),
       hoursBeforeOrAfterMeal: entity.hoursBeforeOrAfterMeal,
       isAfterMeal: entity.isAfterMeal,
     );

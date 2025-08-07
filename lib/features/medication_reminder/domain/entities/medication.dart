@@ -9,7 +9,7 @@ class Medication {
   final int totalPills;
   final int dailyDosage; // Kaç defa alınacak
   final bool isManualSchedule;
-  final List<TimeOfDay>? manualTimes; // Eğer manuelse
+  final List<TimeOfDay>? reminderTimes; // Eğer manuelse
   final int? hoursBeforeOrAfterMeal; // Opsiyonel
   final bool? isAfterMeal;
 
@@ -22,7 +22,7 @@ class Medication {
     required this.totalPills,
     required this.dailyDosage,
     required this.isManualSchedule,
-    this.manualTimes,
+    this.reminderTimes,
     this.hoursBeforeOrAfterMeal,
     this.isAfterMeal,
   });

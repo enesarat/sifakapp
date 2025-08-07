@@ -5,27 +5,44 @@ import '../../domain/entities/medication.dart';
 import '../bloc/medication_bloc.dart';
 import '../bloc/medication_event.dart';
 
-class MedicationFormPage extends StatefulWidget {
-  const MedicationFormPage({super.key});
+class MedicationEditPage extends StatefulWidget {
+  final Medication medication;
+
+  const MedicationEditPage({super.key, required this.medication});
 
   @override
-  State<MedicationFormPage> createState() => _MedicationFormPageState();
+  State<MedicationEditPage> createState() => _MedicationEditPageState();
 }
 
-class _MedicationFormPageState extends State<MedicationFormPage> {
-  final _nameController = TextEditingController();
-  final _diagnosisController = TextEditingController();
-  final _typeController = TextEditingController();
-  final _pillsController = TextEditingController();
+class _MedicationEditPageState extends State<MedicationEditPage> {
+  late TextEditingController _nameController;
+  late TextEditingController _diagnosisController;
+  late TextEditingController _typeController;
+  late TextEditingController _pillsController;
 
-  DateTime _expirationDate = DateTime.now();
-  int _dailyDosage = 1;
-  bool _isManualSchedule = false;
+  late DateTime _expirationDate;
+  late int _dailyDosage;
+  late bool _isManualSchedule;
+  late List<TimeOfDay> _manualTimes;
 
-  List<TimeOfDay> _manualTimes = [];
+  late bool _isAfterMeal;
+  late int _hoursBeforeOrAfterMeal;
 
-  bool _isAfterMeal = true;
-  int _hoursBeforeOrAfterMeal = 0;
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.medication.name);
+    _diagnosisController = TextEditingController(text: widget.medication.diagnosis);
+    _typeController = TextEditingController(text: widget.medication.type);
+    _pillsController = TextEditingController(text: widget.medication.totalPills.toString());
+
+    _expirationDate = widget.medication.expirationDate;
+    _dailyDosage = widget.medication.dailyDosage;
+    _isManualSchedule = widget.medication.isManualSchedule;
+    _manualTimes = widget.medication.reminderTimes ?? [];
+    _isAfterMeal = widget.medication.isAfterMeal ?? true;
+    _hoursBeforeOrAfterMeal = widget.medication.hoursBeforeOrAfterMeal ?? 0;
+  }
 
   Future<void> _pickDate(BuildContext context) async {
     final picked = await showDatePicker(
@@ -69,8 +86,8 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         ? _manualTimes
         : _generateDefaultTimes(_dailyDosage);
 
-    final medication = Medication(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    final updatedMedication = Medication(
+      id: widget.medication.id,
       name: _nameController.text,
       diagnosis: _diagnosisController.text,
       type: _typeController.text,
@@ -83,14 +100,14 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       isAfterMeal: _isAfterMeal,
     );
 
-    context.read<MedicationBloc>().add(AddMedication(medication));
+    context.read<MedicationBloc>().add(UpdateMedication(updatedMedication));
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Add Medication")),
+      appBar: AppBar(title: const Text("İlacı Düzenle")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -170,8 +187,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                     max: 3,
                     divisions: 3,
                     label: "$_hoursBeforeOrAfterMeal saat",
-                    onChanged: (val) =>
-                        setState(() => _hoursBeforeOrAfterMeal = val.toInt()),
+                    onChanged: (val) => setState(() => _hoursBeforeOrAfterMeal = val.toInt()),
                   ),
                 ),
               ],
@@ -179,8 +195,9 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
             const SizedBox(height: 20),
             Center(
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(),
                 onPressed: _submit,
-                child: const Text("Kaydet"),
+                child: const Text("Güncelle"),
               ),
             ),
           ],

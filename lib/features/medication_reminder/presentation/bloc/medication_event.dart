@@ -13,3 +13,8 @@ class RemoveMedication extends MedicationEvent {
   final String id;
   RemoveMedication(this.id);
 }
+
+class UpdateMedication extends MedicationEvent {
+  final Medication medication;
+  UpdateMedication(this.medication);
+}

@@ -29,7 +29,7 @@ class MedicationModel extends HiveObject {
   final bool isManualSchedule;
 
   @HiveField(8)
-  final List<String>? manualTimes; // "08:00", "13:00" gibi saat stringleri
+  final List<String>? reminderTimes; // "08:00", "13:00" gibi saat stringleri
 
   @HiveField(9)
   final int? hoursBeforeOrAfterMeal;
@@ -46,7 +46,7 @@ class MedicationModel extends HiveObject {
     required this.totalPills,
     required this.dailyDosage,
     required this.isManualSchedule,
-    this.manualTimes,
+    this.reminderTimes,
     this.hoursBeforeOrAfterMeal,
     this.isAfterMeal,
   });

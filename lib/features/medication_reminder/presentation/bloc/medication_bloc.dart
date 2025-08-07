@@ -1,5 +1,6 @@
 import '../../domain/use_cases/create_medication.dart';
 import '../../domain/use_cases/delete_medication.dart';
+import '../../domain/use_cases/edit_medication.dart';
 import '../../domain/use_cases/get_all_medications.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'medication_event.dart';
@@ -9,11 +10,13 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
   final GetAllMedications getAllMedications;
   final CreateMedication createMedication;
   final DeleteMedication deleteMedication;
+  final EditMedication editMedication;
 
   MedicationBloc({
     required this.getAllMedications,
     required this.createMedication,
     required this.deleteMedication,
+    required this.editMedication,
   }) : super(MedicationInitial()) {
     on<FetchAllMedications>((event, emit) async {
       emit(MedicationLoading());
@@ -28,6 +31,12 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
 
     on<RemoveMedication>((event, emit) async {
       await deleteMedication.call(event.id);
+      add(FetchAllMedications());
+    });
+
+    on<UpdateMedication>((event, emit) async {
+      // Henüz UpdateMedication UseCase yok, onu da yazacağız
+      await editMedication.call(event.medication);
       add(FetchAllMedications());
     });
   }

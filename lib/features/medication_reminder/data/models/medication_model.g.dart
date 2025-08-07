@@ -25,7 +25,7 @@ class MedicationModelAdapter extends TypeAdapter<MedicationModel> {
       totalPills: fields[5] as int,
       dailyDosage: fields[6] as int,
       isManualSchedule: fields[7] as bool,
-      manualTimes: (fields[8] as List?)?.cast<String>(),
+      reminderTimes: (fields[8] as List?)?.cast<String>(),
       hoursBeforeOrAfterMeal: fields[9] as int?,
       isAfterMeal: fields[10] as bool?,
     );
@@ -52,7 +52,7 @@ class MedicationModelAdapter extends TypeAdapter<MedicationModel> {
       ..writeByte(7)
       ..write(obj.isManualSchedule)
       ..writeByte(8)
-      ..write(obj.manualTimes)
+      ..write(obj.reminderTimes)
       ..writeByte(9)
       ..write(obj.hoursBeforeOrAfterMeal)
       ..writeByte(10)
