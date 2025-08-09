@@ -1,4 +1,4 @@
-import '../../domain/entities/medication.dart';
+import '../../../domain/entities/medication.dart';
 
 abstract class MedicationEvent {}
 

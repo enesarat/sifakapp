@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import '../../domain/entities/medication.dart';
-import '../bloc/medication_bloc.dart';
-import '../bloc/medication_event.dart';
+import 'package:sifakapp/features/medication_reminder/domain/entities/medication.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_event.dart';
+import 'widgets/medication_name_field.dart';
+import 'widgets/medication_diagnosis_field.dart';
+import 'widgets/medication_type_field.dart';
+import 'widgets/medication_pills_field.dart';
+import 'widgets/medication_expiration_date.dart';
+import 'widgets/medication_daily_dosage_slider.dart';
+import 'widgets/medication_schedule_switch.dart';
+import 'widgets/medication_time_picker.dart';
+import 'widgets/medication_meal_info.dart';
+import 'widgets/medication_save_button.dart';
 
 class MedicationEditPage extends StatefulWidget {
   final Medication medication;
@@ -113,93 +122,40 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(controller: _nameController, decoration: const InputDecoration(labelText: "İlaç Adı")),
-            TextField(controller: _diagnosisController, decoration: const InputDecoration(labelText: "Tanı")),
-            TextField(controller: _typeController, decoration: const InputDecoration(labelText: "Tür (Vitamin vb.)")),
-            TextField(
-              controller: _pillsController,
-              decoration: const InputDecoration(labelText: "Toplam Hap Sayısı"),
-              keyboardType: TextInputType.number,
+            MedicationNameField(controller: _nameController),
+            MedicationDiagnosisField(controller: _diagnosisController),
+            MedicationTypeField(controller: _typeController),
+            MedicationPillsField(controller: _pillsController),
+            MedicationExpirationDate(
+              expirationDate: _expirationDate,
+              onPickDate: () => _pickDate(context),
             ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Text("Son Kullanma Tarihi: "),
-                TextButton(
-                  onPressed: () => _pickDate(context),
-                  child: Text("${_expirationDate.toLocal()}".split(' ')[0]),
-                )
-              ],
+            MedicationDailyDosageSlider(
+              dailyDosage: _dailyDosage,
+              onChanged: (value) => setState(() => _dailyDosage = value),
             ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Text("Günlük Doz: "),
-                Expanded(
-                  child: Slider(
-                    value: _dailyDosage.toDouble(),
-                    min: 1,
-                    max: 5,
-                    divisions: 4,
-                    label: _dailyDosage.toString(),
-                    onChanged: (val) => setState(() => _dailyDosage = val.toInt()),
-                  ),
-                ),
-                Text("$_dailyDosage")
-              ],
-            ),
-            SwitchListTile(
-              title: const Text("Zamanları Manuel Girmek İstiyorum"),
-              value: _isManualSchedule,
-              onChanged: (val) {
-                setState(() {
-                  _isManualSchedule = val;
-                  _manualTimes = [];
-                });
-              },
+            MedicationScheduleSwitch(
+              isManualSchedule: _isManualSchedule,
+              onChanged: (value) => setState(() {
+                _isManualSchedule = value;
+                _manualTimes = [];
+              }),
             ),
             if (_isManualSchedule)
-              ...List.generate(
-                _dailyDosage,
-                (index) => ListTile(
-                  title: Text(_manualTimes.length > index
-                      ? _manualTimes[index].format(context)
-                      : 'Zaman Seç (${index + 1})'),
-                  trailing: const Icon(Icons.access_time),
-                  onTap: () => _pickTime(index),
-                ),
+              MedicationTimePicker(
+                manualTimes: _manualTimes,
+                onPickTime: _pickTime,
+                dailyDosage: _dailyDosage,
               ),
-            const Divider(height: 32),
-            const Text("Öğün Bilgisi", style: TextStyle(fontWeight: FontWeight.bold)),
-            SwitchListTile(
-              title: Text(_isAfterMeal ? "Yemekten Sonra" : "Yemekten Önce"),
-              value: _isAfterMeal,
-              onChanged: (val) => setState(() => _isAfterMeal = val),
-            ),
-            Row(
-              children: [
-                Text("Kaç saat ${_isAfterMeal ? 'sonra' : 'önce'}?"),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Slider(
-                    value: _hoursBeforeOrAfterMeal.toDouble(),
-                    min: 0,
-                    max: 3,
-                    divisions: 3,
-                    label: "$_hoursBeforeOrAfterMeal saat",
-                    onChanged: (val) => setState(() => _hoursBeforeOrAfterMeal = val.toInt()),
-                  ),
-                ),
-              ],
+            MedicationMealInfo(
+              isAfterMeal: _isAfterMeal,
+              onChanged: (value) => setState(() => _isAfterMeal = value),
+              hoursBeforeOrAfterMeal: _hoursBeforeOrAfterMeal,
+              onSliderChanged: (value) =>
+                  setState(() => _hoursBeforeOrAfterMeal = value.toInt()),
             ),
             const SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(),
-                onPressed: _submit,
-                child: const Text("Güncelle"),
-              ),
-            ),
+            MedicationSaveButton(onPressed: _submit),
           ],
         ),
       ),

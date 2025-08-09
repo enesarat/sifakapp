@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:sifakapp/core/service_locator.dart';
 import 'features/medication_reminder/data/models/medication_model.dart';
-import 'features/medication_reminder/presentation/bloc/medication_bloc.dart';
-import 'features/medication_reminder/presentation/bloc/medication_event.dart';
-import 'features/medication_reminder/presentation/pages/medication_list_page.dart';
+import 'features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
+import 'features/medication_reminder/presentation/blocs/medication/medication_event.dart';
+import 'features/medication_reminder/presentation/pages/medication_list/medication_list_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

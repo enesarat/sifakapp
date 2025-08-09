@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../domain/entities/medication.dart';
-import '../../bloc/medication_bloc.dart';
-import '../../bloc/medication_event.dart';
-import '../../pages/medication_edit_page.dart';
+import '../../../../domain/entities/medication.dart';
+import '../../../blocs/medication/medication_bloc.dart';
+import '../../../blocs/medication/medication_event.dart';
+import '../../medication_edit/medication_edit_page.dart';
+import 'confirm_delete_medication_dialog.dart';
 
 void showMedicationDetailsDialog(BuildContext context, Medication med) {
   showDialog(
@@ -59,9 +60,23 @@ void showMedicationDetailsDialog(BuildContext context, Medication med) {
                       label: Text("Düzenle", style: TextStyle(color: Colors.blue)),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () {
-                        context.read<MedicationBloc>().add(RemoveMedication(med.id));
-                        Navigator.pop(context);
+                      onPressed: () async {
+                        // Silme işlemi için onay diyaloğunu göster
+                        final confirmed = await showConfirmDeleteMedicationDialog(
+                          context,
+                          med: med,
+                        );
+                        if (confirmed == true) {
+                          context.read<MedicationBloc>().add(RemoveMedication(med.id));
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('İlaç siliniyor...'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                          Navigator.pop(context); // Dialog'u kapat
+                        }
                       },
                       icon: Icon(Icons.delete, color: Colors.red),
                       label: Text("Sil", style: TextStyle(color: Colors.red)),
