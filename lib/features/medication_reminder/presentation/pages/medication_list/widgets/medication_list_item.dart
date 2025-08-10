@@ -62,10 +62,6 @@ class MedicationListItem extends StatelessWidget {
                         med: med,
                       );
                       if (confirmed == true) {
-                        // BLoC'a bildir
-                        // (ID string ise med.id string olmalı; tipine göre uyarlayın)
-                        // Hata olursa UI zaten MedicationError gösterecek.
-                        // ignore: use_build_context_synchronously
                         context.read<MedicationBloc>().add(RemoveMedication(med.id));
 
                         ScaffoldMessenger.of(context).showSnackBar(

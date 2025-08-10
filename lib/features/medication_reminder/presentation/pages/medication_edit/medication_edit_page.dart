@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:sifakapp/core/validations/validator.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_event.dart';
@@ -28,6 +29,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
   late TextEditingController _diagnosisController;
   late TextEditingController _typeController;
   late TextEditingController _pillsController;
+  final _formKey = GlobalKey<FormState>();
 
   late DateTime _expirationDate;
   late int _dailyDosage;
@@ -91,27 +93,43 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
   }
 
   void _submit() {
-    final reminderTimes = _isManualSchedule
-        ? _manualTimes
-        : _generateDefaultTimes(_dailyDosage);
+    if (_formKey.currentState!.validate()) {
+      final reminderTimes = _isManualSchedule
+          ? _manualTimes
+          : _generateDefaultTimes(_dailyDosage);
+      
+      final manualTimeError = Validator.validateManualTime(_manualTimes, _dailyDosage, _isManualSchedule);
+      if (manualTimeError != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(manualTimeError)),
+        );
+        return;
+      }
 
-    final updatedMedication = Medication(
-      id: widget.medication.id,
-      name: _nameController.text,
-      diagnosis: _diagnosisController.text,
-      type: _typeController.text,
-      expirationDate: _expirationDate,
-      totalPills: int.tryParse(_pillsController.text) ?? 0,
-      dailyDosage: _dailyDosage,
-      isManualSchedule: _isManualSchedule,
-      reminderTimes: reminderTimes,
-      hoursBeforeOrAfterMeal: _hoursBeforeOrAfterMeal,
-      isAfterMeal: _isAfterMeal,
-    );
+      final updatedMedication = Medication(
+        id: widget.medication.id,
+        name: _nameController.text,
+        diagnosis: _diagnosisController.text,
+        type: _typeController.text,
+        expirationDate: _expirationDate,
+        totalPills: int.tryParse(_pillsController.text) ?? 0,
+        dailyDosage: _dailyDosage,
+        isManualSchedule: _isManualSchedule,
+        reminderTimes: reminderTimes,
+        hoursBeforeOrAfterMeal: _hoursBeforeOrAfterMeal,
+        isAfterMeal: _isAfterMeal,
+      );
 
-    context.read<MedicationBloc>().add(UpdateMedication(updatedMedication));
-    Navigator.pop(context);
+      context.read<MedicationBloc>().add(UpdateMedication(updatedMedication));
+
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen formu eksiksiz doldurun!')),
+      );
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -119,46 +137,67 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
       appBar: AppBar(title: const Text("İlacı Düzenle")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            MedicationNameField(controller: _nameController),
-            MedicationDiagnosisField(controller: _diagnosisController),
-            MedicationTypeField(controller: _typeController),
-            MedicationPillsField(controller: _pillsController),
-            MedicationExpirationDate(
-              expirationDate: _expirationDate,
-              onPickDate: () => _pickDate(context),
-            ),
-            MedicationDailyDosageSlider(
-              dailyDosage: _dailyDosage,
-              onChanged: (value) => setState(() => _dailyDosage = value),
-            ),
-            MedicationScheduleSwitch(
-              isManualSchedule: _isManualSchedule,
-              onChanged: (value) => setState(() {
-                _isManualSchedule = value;
-                _manualTimes = [];
-              }),
-            ),
-            if (_isManualSchedule)
-              MedicationTimePicker(
-                manualTimes: _manualTimes,
-                onPickTime: _pickTime,
-                dailyDosage: _dailyDosage,
+        child: Form(
+          key: _formKey,  // Form key
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MedicationNameField(
+                controller: _nameController,
+                validator: Validator.validateMedicationName,
               ),
-            MedicationMealInfo(
-              isAfterMeal: _isAfterMeal,
-              onChanged: (value) => setState(() => _isAfterMeal = value),
-              hoursBeforeOrAfterMeal: _hoursBeforeOrAfterMeal,
-              onSliderChanged: (value) =>
-                  setState(() => _hoursBeforeOrAfterMeal = value.toInt()),
-            ),
-            const SizedBox(height: 20),
-            MedicationSaveButton(onPressed: _submit),
-          ],
+              MedicationDiagnosisField(
+                controller: _diagnosisController,
+                validator: Validator.validateDiagnosis,
+              ),
+              MedicationTypeField(controller: _typeController),
+              MedicationPillsField(
+                controller: _pillsController,
+                validator: Validator.validatePills,
+              ),
+              MedicationExpirationDate(
+                expirationDate: _expirationDate,
+                onPickDate: () => _pickDate(context),
+              ),
+              MedicationDailyDosageSlider(
+                dailyDosage: _dailyDosage,
+                onChanged: (value) => setState(() => _dailyDosage = value),
+              ),
+              MedicationScheduleSwitch(
+                isManualSchedule: _isManualSchedule,
+                onChanged: (value) => setState(() {
+                  _isManualSchedule = value;
+                  _manualTimes = [];
+                }),
+              ),
+              if (_isManualSchedule)
+                MedicationTimePicker(
+                  manualTimes: _manualTimes,
+                  onPickTime: _pickTime,
+                  dailyDosage: _dailyDosage,
+                  validator: (manualTimes) => Validator.validateManualTime(manualTimes, _dailyDosage, true),
+                ),
+              MedicationMealInfo(
+                isAfterMeal: _isAfterMeal,
+                onChanged: (value) => setState(() => _isAfterMeal = value),
+                hoursBeforeOrAfterMeal: _hoursBeforeOrAfterMeal,
+                onSliderChanged: (value) =>
+                    setState(() => _hoursBeforeOrAfterMeal = value.toInt()),
+              ),
+              const SizedBox(height: 20),
+              MedicationSaveButton(
+                onPressed: () {
+                  // Validate the form
+                  if (_formKey.currentState!.validate()) {
+                    _submit();
+                  }
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
 }
