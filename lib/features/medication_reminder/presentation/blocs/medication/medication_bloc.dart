@@ -43,34 +43,51 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     Emitter<MedicationState> emit,
   ) async {
     try {
+      // Tercihen createMedication, kaydedilen Medication veya id dönebilir.
       await createMedication.call(event.medication);
+
+      // 1) Başarı sinyalini ver
+      emit(MedicationCreated(event.medication));
+
+      // 2) Listeyi tazele (UI zaten success'i dinleyebilir)
       add(FetchAllMedications());
     } catch (e) {
       emit(MedicationError('Kayıt eklenemedi. Lütfen tekrar deneyin.'));
     }
   }
 
-  Future<void> _onRemove(
-    RemoveMedication event,
-    Emitter<MedicationState> emit,
-  ) async {
-    try {
-      await deleteMedication.call(event.id);
-      add(FetchAllMedications());
-    } catch (e) {
-      emit(MedicationError('Kayıt silinemedi. Lütfen tekrar deneyin.'));
-    }
-  }
+    Future<void> _onRemove(
+      RemoveMedication event,
+      Emitter<MedicationState> emit,
+    ) async {
+      try {
+        await deleteMedication.call(event.id);
 
-  Future<void> _onUpdate(
-    UpdateMedication event,
-    Emitter<MedicationState> emit,
-  ) async {
-    try {
-      await editMedication.call(event.medication);
-      add(FetchAllMedications());
-    } catch (e) {
-      emit(MedicationError('Kayıt güncellenemedi. Lütfen tekrar deneyin.'));
+        // 1) Başarı sinyali
+        emit(MedicationDeleted(event.id));
+
+        // 2) Listeyi tazele
+        add(FetchAllMedications());
+      } catch (e) {
+        emit(MedicationError('Kayıt silinemedi. Lütfen tekrar deneyin.'));
+      }
     }
-  }
+
+    Future<void> _onUpdate(
+      UpdateMedication event,
+      Emitter<MedicationState> emit,
+    ) async {
+      try {
+        await editMedication.call(event.medication);
+
+        // 1) Başarı sinyali
+        emit(MedicationUpdated(event.medication));
+
+        // 2) Listeyi tazele
+        add(FetchAllMedications());
+      } catch (e) {
+        emit(MedicationError('Kayıt güncellenemedi. Lütfen tekrar deneyin.'));
+      }
+    }
+
 }

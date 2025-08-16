@@ -15,3 +15,18 @@ class MedicationError extends MedicationState {
   final String message;
   MedicationError(this.message);
 }
+
+class MedicationCreated extends MedicationState {
+  final Medication medication;
+  MedicationCreated(this.medication);
+}
+
+class MedicationUpdated extends MedicationState {
+  final Medication medication;
+  MedicationUpdated(this.medication);
+}
+
+class MedicationDeleted extends MedicationState {
+  final String id;
+  MedicationDeleted(this.id);
+}

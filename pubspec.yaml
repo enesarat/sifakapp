@@ -19,7 +19,8 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: ">=3.6.0 <4.0.0"
+  #sdk: ^3.8.1
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -35,6 +36,8 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   path_provider: ^2.0.15
+  go_router: 13.2.0   # 14.x da olur; 15.2.0 ile GoRouteData’da .push/.go gelir
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -43,8 +46,9 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  hive_generator: ^2.0.1
-  build_runner: ^2.4.6
+  build_runner: 2.5.4       # 👈 build ^2.x ile uyumlu son hat
+  hive_generator: 2.0.1     # 👈 source_gen ^1 ve build ^2 ile çalışır
+  go_router_builder: 2.8.2
   
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
