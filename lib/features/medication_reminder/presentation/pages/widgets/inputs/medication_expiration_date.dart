@@ -5,20 +5,28 @@ class MedicationExpirationDate extends StatelessWidget {
     super.key,
     required this.expirationDate,
     required this.onPickDate,
+    required this.onClear,
   });
 
-  final DateTime expirationDate;
+  final DateTime? expirationDate;
   final VoidCallback onPickDate;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Text("Son Kullanma Tarihi: "),
+        const Text("SKT: "),
         TextButton(
           onPressed: onPickDate,
-          child: Text("${expirationDate.toLocal()}".split(' ')[0]),
-        )
+          child: Text(expirationDate == null ? '—' : "${expirationDate!.toLocal()}".split(' ')[0]),
+        ),
+        if (expirationDate != null)
+          IconButton(
+            icon: const Icon(Icons.clear),
+            tooltip: 'Temizle',
+            onPressed: onClear,
+          ),
       ],
     );
   }

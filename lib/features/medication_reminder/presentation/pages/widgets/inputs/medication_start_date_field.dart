@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 
-class MedicationExpirationDate extends StatelessWidget {
-  const MedicationExpirationDate({
+class MedicationStartDateField extends StatelessWidget {
+  const MedicationStartDateField({
     super.key,
-    required this.expirationDate,
+    required this.startDate,
     required this.onPickDate,
   });
 
-  final DateTime expirationDate;
+  final DateTime startDate;
   final VoidCallback onPickDate;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Text("Son Kullanma Tarihi: "),
+        const Text("Başlangıç: "),
         TextButton(
           onPressed: onPickDate,
-          child: Text("${expirationDate.toLocal()}".split(' ')[0]),
-        )
+          child: Text("${startDate.toLocal()}".split(' ')[0]),
+        ),
       ],
     );
   }

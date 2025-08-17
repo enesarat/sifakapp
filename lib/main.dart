@@ -1,4 +1,3 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -11,12 +10,25 @@ import 'features/medication_reminder/presentation/blocs/medication/medication_ev
 
 import 'package:go_router/go_router.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
+  Hive.registerAdapter(ScheduleModeAdapter());
   Hive.registerAdapter(MedicationModelAdapter());
-  final box = await Hive.openBox<MedicationModel>('medications');
+
+  // Geliştirme sırasında şema değişikliğiyle patlıyorsa kutuyu temizleyip açmak gerekiyor.
+  // Üretimde migration işlemi yapılmalı.:
+  const boxName = 'medications';
+  Box<MedicationModel> box;
+  try {
+    box = await Hive.openBox<MedicationModel>(boxName);
+  } catch (e) {
+    // DEV ONLY: Kutu açılırken hata alındıysa, kutuyu silip yeniden açıyoruz.
+    await Hive.deleteBoxFromDisk(boxName);
+    box = await Hive.openBox<MedicationModel>(boxName);
+  }
+
   setupLocator(box);
 
   runApp(
@@ -36,7 +48,7 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   static final _router = GoRouter(
-    routes: $appRoutes, // app_routes.g.dart içinden geliyor
+    routes: $appRoutes,
   );
 
   @override

@@ -63,24 +63,49 @@ void showMedicationDetailsDialog(BuildContext context, Medication med) {
                           const SizedBox(height: 12),
                           const Divider(),
                           const SizedBox(height: 12),
+
+                          // Temel bilgiler
                           _detailRow("Tanı", med.diagnosis),
                           _detailRow("Tür", med.type),
-                          _detailRow("Son Kullanma",
-                              med.expirationDate.toLocal().toString().split(' ')[0]),
+
+                          // Tarihler (null-safe)
+                          _detailRow("Başlangıç", _formatDate(med.startDate)),
+                          if (med.endDate != null)
+                            _detailRow("Bitiş", _formatDate(med.endDate)),
+                          if (med.expirationDate != null)
+                            _detailRow("SKT", _formatDate(med.expirationDate)),
+
+                          // Miktarlar
                           _detailRow("Toplam Hap", med.totalPills.toString()),
+                          _detailRow("Kalan Hap", med.remainingPills.toString()),
                           _detailRow("Günlük Doz", med.dailyDosage.toString()),
-                          _detailRow("Zaman Türü", med.isManualSchedule ? "Manuel" : "Otomatik"),
+
+                          // Planlama modları
+                          _detailRow("Saat Planı", _scheduleModeLabel(med.timeScheduleMode)),
+                          _detailRow(
+                            "Gün Planı",
+                            "${_scheduleModeLabel(med.dayScheduleMode)}${med.isEveryDay ? ' • Her gün' : ''}",
+                          ),
+                          if (!med.isEveryDay && med.usageDays != null && med.usageDays!.isNotEmpty)
+                            _detailRow("Kullanılacak Günler", _formatUsageDays(med.usageDays)),
+
+                          // Hatırlatıcı saatler
                           if (med.reminderTimes != null && med.reminderTimes!.isNotEmpty)
                             _detailRow(
                               "Hatırlatıcı Saatler",
                               med.reminderTimes!.map((e) => e.format(ctx)).join(', '),
                             ),
-                          if (med.hoursBeforeOrAfterMeal != null && med.isAfterMeal != null)
+
+                          // Yemek ilişkisi
+                          if (med.isAfterMeal != null)
                             _detailRow(
                               "Yemek Zamanı",
-                              "${med.hoursBeforeOrAfterMeal} saat ${med.isAfterMeal! ? 'sonra' : 'önce'} alınmalı",
+                              _formatMeal(med),
                             ),
+
                           const SizedBox(height: 24),
+
+                          // Aksiyonlar
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
@@ -174,4 +199,41 @@ Widget _detailRow(String label, String value) {
       ],
     ),
   );
+}
+
+// -------------------------
+// Helpers (null-safe)
+// -------------------------
+
+String _formatDate(DateTime? dt) {
+  if (dt == null) return '—';
+  final d = dt.toLocal();
+  final y = d.year.toString().padLeft(4, '0');
+  final m = d.month.toString().padLeft(2, '0');
+  final day = d.day.toString().padLeft(2, '0');
+  return '$y-$m-$day';
+}
+
+String _scheduleModeLabel(ScheduleMode mode) {
+  switch (mode) {
+    case ScheduleMode.automatic:
+      return 'Otomatik';
+    case ScheduleMode.manual:
+      return 'Manuel';
+  }
+}
+
+String _formatUsageDays(List<int>? days) {
+  if (days == null || days.isEmpty) return '—';
+  const names = {
+    1: 'Pzt', 2: 'Sal', 3: 'Çar', 4: 'Per', 5: 'Cum', 6: 'Cts', 7: 'Paz',
+  };
+  return days.map((d) => names[d] ?? d.toString()).join(', ');
+}
+
+String _formatMeal(Medication m) {
+  final suffix = (m.hoursBeforeOrAfterMeal != null && m.hoursBeforeOrAfterMeal != 0)
+      ? ' ${m.hoursBeforeOrAfterMeal} sa'
+      : '';
+  return m.isAfterMeal! ? 'Yemekten sonra$suffix' : 'Yemekten önce$suffix';
 }

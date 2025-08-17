@@ -21,20 +21,26 @@ class MedicationModelAdapter extends TypeAdapter<MedicationModel> {
       name: fields[1] as String,
       diagnosis: fields[2] as String,
       type: fields[3] as String,
-      expirationDate: fields[4] as DateTime,
-      totalPills: fields[5] as int,
-      dailyDosage: fields[6] as int,
-      isManualSchedule: fields[7] as bool,
-      reminderTimes: (fields[8] as List?)?.cast<String>(),
-      hoursBeforeOrAfterMeal: fields[9] as int?,
-      isAfterMeal: fields[10] as bool?,
+      startDate: fields[4] as DateTime,
+      endDate: fields[5] as DateTime?,
+      expirationDate: fields[6] as DateTime?,
+      totalPills: fields[7] as int,
+      remainingPills: fields[8] as int,
+      dailyDosage: fields[9] as int,
+      timeScheduleMode: fields[10] as ScheduleMode,
+      dayScheduleMode: fields[11] as ScheduleMode,
+      reminderTimes: (fields[12] as List?)?.cast<String>(),
+      isEveryDay: fields[13] as bool,
+      usageDays: (fields[14] as List?)?.cast<int>(),
+      hoursBeforeOrAfterMeal: fields[15] as int?,
+      isAfterMeal: fields[16] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, MedicationModel obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -44,18 +50,30 @@ class MedicationModelAdapter extends TypeAdapter<MedicationModel> {
       ..writeByte(3)
       ..write(obj.type)
       ..writeByte(4)
-      ..write(obj.expirationDate)
+      ..write(obj.startDate)
       ..writeByte(5)
-      ..write(obj.totalPills)
+      ..write(obj.endDate)
       ..writeByte(6)
-      ..write(obj.dailyDosage)
+      ..write(obj.expirationDate)
       ..writeByte(7)
-      ..write(obj.isManualSchedule)
+      ..write(obj.totalPills)
       ..writeByte(8)
-      ..write(obj.reminderTimes)
+      ..write(obj.remainingPills)
       ..writeByte(9)
-      ..write(obj.hoursBeforeOrAfterMeal)
+      ..write(obj.dailyDosage)
       ..writeByte(10)
+      ..write(obj.timeScheduleMode)
+      ..writeByte(11)
+      ..write(obj.dayScheduleMode)
+      ..writeByte(12)
+      ..write(obj.reminderTimes)
+      ..writeByte(13)
+      ..write(obj.isEveryDay)
+      ..writeByte(14)
+      ..write(obj.usageDays)
+      ..writeByte(15)
+      ..write(obj.hoursBeforeOrAfterMeal)
+      ..writeByte(16)
       ..write(obj.isAfterMeal);
   }
 
@@ -66,6 +84,45 @@ class MedicationModelAdapter extends TypeAdapter<MedicationModel> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is MedicationModelAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ScheduleModeAdapter extends TypeAdapter<ScheduleMode> {
+  @override
+  final int typeId = 1;
+
+  @override
+  ScheduleMode read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return ScheduleMode.automatic;
+      case 1:
+        return ScheduleMode.manual;
+      default:
+        return ScheduleMode.automatic;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, ScheduleMode obj) {
+    switch (obj) {
+      case ScheduleMode.automatic:
+        writer.writeByte(0);
+        break;
+      case ScheduleMode.manual:
+        writer.writeByte(1);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ScheduleModeAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:sifakapp/core/validations/validator.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_event.dart';
-import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_state.dart'; // <-- success state'leri burada
+import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_state.dart';
 
-import 'widgets/medication_name_field.dart';
-import 'widgets/medication_diagnosis_field.dart';
-import 'widgets/medication_type_field.dart';
-import 'widgets/medication_pills_field.dart';
-import 'widgets/medication_expiration_date.dart';
-import 'widgets/medication_daily_dosage_slider.dart';
-import 'widgets/medication_schedule_switch.dart';
-import 'widgets/medication_time_picker.dart';
-import 'widgets/medication_meal_info.dart';
-import 'widgets/medication_save_button.dart';
+// Reusable inputs (barrel)
+import '../widgets/widgets.dart';
+
+// utils
+import '../../utils/schedule_utils.dart';  // previewAutomaticUsageDays, generateAutomaticUsageDays
+import '../../utils/time_utils.dart';      // generateEvenlySpacedTimes
 
 class MedicationFormPage extends StatefulWidget {
   const MedicationFormPage({super.key});
@@ -27,27 +24,75 @@ class MedicationFormPage extends StatefulWidget {
 
 class _MedicationFormPageState extends State<MedicationFormPage> {
   final _formKey = GlobalKey<FormState>();
+
+  // Controllers
   final _nameController = TextEditingController();
   final _diagnosisController = TextEditingController();
   final _typeController = TextEditingController();
   final _pillsController = TextEditingController();
-  DateTime _expirationDate = DateTime.now();
+
+  // Dates
+  DateTime _startDate = DateTime.now();
+  DateTime? _endDate;
+  DateTime? _expirationDate;
+
+  // Dosage & schedule
   int _dailyDosage = 1;
-  bool _isManualSchedule = false;
+  ScheduleMode _timeScheduleMode = ScheduleMode.automatic;
+  ScheduleMode _dayScheduleMode = ScheduleMode.manual;
+  bool _isEveryDay = true;
+  List<int> _usageDays = []; // manual seçim
+  int _autoDaysPerWeek = 3;   // 0..6 (default 3)
+  List<int> _autoPreviewDays = []; // UI preview
+
+  // Times
   List<TimeOfDay> _manualTimes = [];
+
+  // Meal
   bool _isAfterMeal = true;
   int _hoursBeforeOrAfterMeal = 0;
 
-  Future<void> _pickDate(BuildContext context) async {
+  // ---- Pickers (UI tarafında kalmalı) ----
+  Future<void> _pickStartDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _expirationDate,
+      initialDate: _startDate,
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
     if (picked != null) {
-      setState(() => _expirationDate = picked);
+      setState(() {
+        _startDate = picked;
+        _autoPreviewDays = previewAutomaticUsageDays(
+          isEveryDay: _isEveryDay,
+          isAutomaticDayMode: _dayScheduleMode == ScheduleMode.automatic,
+          autoDaysPerWeek: _autoDaysPerWeek,
+          startWeekday: _startDate.weekday,
+        );
+      });
     }
+  }
+
+  Future<void> _pickEndDate() async {
+    final initial = _endDate ?? _startDate;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: _startDate,
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) setState(() => _endDate = picked);
+  }
+
+  Future<void> _pickExpirationDate() async {
+    final initial = _expirationDate ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) setState(() => _expirationDate = picked);
   }
 
   Future<void> _pickTime(int index) async {
@@ -65,24 +110,20 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       });
     }
   }
-
-  List<TimeOfDay> _generateDefaultTimes(int dose) {
-    final List<TimeOfDay> times = [];
-    final interval = (24 / dose).floor();
-    for (int i = 0; i < dose; i++) {
-      times.add(TimeOfDay(hour: (i * interval) % 24, minute: 0));
-    }
-    return times;
-  }
+  // ---- pickers end ----
 
   void _submit() {
-    if (_formKey.currentState!.validate()) {
-      final reminderTimes = _isManualSchedule
-          ? _manualTimes
-          : _generateDefaultTimes(_dailyDosage);
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen formu eksiksiz doldurun!')),
+      );
+      return;
+    }
 
+    // Saat planı manuel ise saat sayısı/doğrulama
+    if (_timeScheduleMode == ScheduleMode.manual) {
       final manualTimeError = Validator.validateManualTime(
-        _manualTimes, _dailyDosage, _isManualSchedule,
+        _manualTimes, _dailyDosage, true,
       );
       if (manualTimeError != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -90,39 +131,74 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         );
         return;
       }
+    }
 
-      final medication = Medication(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text,
-        diagnosis: _diagnosisController.text,
-        type: _typeController.text,
-        expirationDate: _expirationDate,
-        totalPills: int.tryParse(_pillsController.text) ?? 0,
-        dailyDosage: _dailyDosage,
-        isManualSchedule: _isManualSchedule,
-        reminderTimes: reminderTimes,
-        hoursBeforeOrAfterMeal: _hoursBeforeOrAfterMeal,
-        isAfterMeal: _isAfterMeal,
-      );
+    // --- Gün doğrulaması (merkezileştirildi) ---
+    final daysError = Validator.validateUsageDays(
+      isEveryDay: _isEveryDay,
+      isManualDayMode: _dayScheduleMode == ScheduleMode.manual,
+      selectedDays: _usageDays,
+      autoDaysPerWeek: _autoDaysPerWeek,
+    );
+    if (daysError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(daysError)));
+      return;
+    }
 
-      // Yalnızca event gönder — pop yapma!
-      context.read<MedicationBloc>().add(AddMedication(medication));
+    // Kaydetmek için usageDays hazırla
+    List<int>? usageDaysForSave;
+    if (_isEveryDay) {
+      usageDaysForSave = null;
+    } else if (_dayScheduleMode == ScheduleMode.manual) {
+      usageDaysForSave = (_usageDays..sort());
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen formu eksiksiz doldurun!')),
+      usageDaysForSave = generateAutomaticUsageDays(
+        _autoDaysPerWeek, startWeekday: _startDate.weekday,
       );
     }
+
+    final totalPills = int.tryParse(_pillsController.text) ?? 0;
+    final remainingPills = totalPills; // ilk kayıtta total'e eşitle
+
+    final reminderTimes = _timeScheduleMode == ScheduleMode.manual
+        ? _manualTimes
+        : generateEvenlySpacedTimes(_dailyDosage);
+
+    final medication = Medication(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: _nameController.text.trim(),
+      diagnosis: _diagnosisController.text.trim(),
+      type: _typeController.text.trim(),
+
+      startDate: _startDate,
+      endDate: _endDate,
+      expirationDate: _expirationDate,
+
+      totalPills: totalPills,
+      remainingPills: remainingPills,
+      dailyDosage: _dailyDosage,
+
+      timeScheduleMode: _timeScheduleMode,
+      dayScheduleMode: _dayScheduleMode,
+      isEveryDay: _isEveryDay,
+      usageDays: usageDaysForSave,
+
+      reminderTimes: _timeScheduleMode == ScheduleMode.manual ? reminderTimes : null,
+
+      hoursBeforeOrAfterMeal: _hoursBeforeOrAfterMeal,
+      isAfterMeal: _isAfterMeal,
+    );
+
+    context.read<MedicationBloc>().add(AddMedication(medication));
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<MedicationBloc, MedicationState>(
-      // Başarı/hatayı yakala — yan-etki burada
       listenWhen: (prev, curr) =>
           curr is MedicationCreated || curr is MedicationError,
       listener: (context, state) {
         if (state is MedicationCreated) {
-          // Kayıt başarılı → formu kapat ve bilgi ver
           context.pop(true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Kayıt eklendi.')),
@@ -151,26 +227,43 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                   validator: Validator.validateDiagnosis,
                 ),
                 MedicationTypeField(controller: _typeController),
-                MedicationPillsField(
-                  controller: _pillsController,
-                  validator: Validator.validatePills,
+
+                const SizedBox(height: 8),
+                MedicationStartDateField(
+                  startDate: _startDate,
+                  onPickDate: _pickStartDate,
+                ),
+                MedicationEndDateField(
+                  endDate: _endDate,
+                  onPickDate: _pickEndDate,
+                  onClear: () => setState(() => _endDate = null),
                 ),
                 MedicationExpirationDate(
                   expirationDate: _expirationDate,
-                  onPickDate: () => _pickDate(context),
+                  onPickDate: _pickExpirationDate,
+                  onClear: () => setState(() => _expirationDate = null),
+                ),
+
+                MedicationPillsField(
+                  controller: _pillsController,
+                  validator: Validator.validatePills,
                 ),
                 MedicationDailyDosageSlider(
                   dailyDosage: _dailyDosage,
                   onChanged: (value) => setState(() => _dailyDosage = value),
                 ),
-                MedicationScheduleSwitch(
-                  isManualSchedule: _isManualSchedule,
-                  onChanged: (value) => setState(() {
-                    _isManualSchedule = value;
+
+                const SizedBox(height: 8),
+                // Saat planı
+                ScheduleModeSelector(
+                  title: 'Saat Planı',
+                  value: _timeScheduleMode,
+                  onChanged: (v) => setState(() {
+                    _timeScheduleMode = v;
                     _manualTimes = [];
                   }),
                 ),
-                if (_isManualSchedule)
+                if (_timeScheduleMode == ScheduleMode.manual)
                   MedicationTimePicker(
                     manualTimes: _manualTimes,
                     onPickTime: _pickTime,
@@ -178,6 +271,84 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                     validator: (manualTimes) =>
                         Validator.validateManualTime(manualTimes, _dailyDosage, true),
                   ),
+
+                const SizedBox(height: 12),
+                MedicationEveryDaySwitch(
+                  isEveryDay: _isEveryDay,
+                  onChanged: (v) {
+                    setState(() {
+                      _isEveryDay = v;
+                      _autoPreviewDays = previewAutomaticUsageDays(
+                        isEveryDay: _isEveryDay,
+                        isAutomaticDayMode: _dayScheduleMode == ScheduleMode.automatic,
+                        autoDaysPerWeek: _autoDaysPerWeek,
+                        startWeekday: _startDate.weekday,
+                      );
+                    });
+                  },
+                ),
+
+                if (!_isEveryDay) ...[
+                  ScheduleModeSelector(
+                    title: 'Gün Planı',
+                    value: _dayScheduleMode,
+                    onChanged: (v) {
+                      setState(() {
+                        _dayScheduleMode = v;
+                        _autoPreviewDays = previewAutomaticUsageDays(
+                          isEveryDay: _isEveryDay,
+                          isAutomaticDayMode: v == ScheduleMode.automatic,
+                          autoDaysPerWeek: _autoDaysPerWeek,
+                          startWeekday: _startDate.weekday,
+                        );
+                        if (v == ScheduleMode.manual) {
+                          _usageDays = [];
+                        }
+                      });
+                    },
+                  ),
+                  if (_dayScheduleMode == ScheduleMode.manual)
+                    MedicationUsageDaysPicker(
+                      selectedDays: _usageDays,
+                      onChanged: (days) {
+                        setState(() {
+                          _usageDays = days;
+                          // 7 gün seçildiyse "Her gün"e terfi et
+                          if (_usageDays.length >= 7) {
+                            _isEveryDay = true;
+                            _usageDays = []; // isEveryDay true iken kayıtta null/boş olacak
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('7 gün seçildi: Her gün olarak ayarlandı.')),
+                            );
+                          }
+                        });
+                      },
+                      validator: (days) => Validator.validateUsageDays(
+                        isEveryDay: _isEveryDay,
+                        isManualDayMode: true,
+                        selectedDays: days,
+                      ),
+                    ),
+
+                  if (_dayScheduleMode == ScheduleMode.automatic)
+                    MedicationWeeklyDaysCount(
+                      value: _autoDaysPerWeek,
+                      onChanged: (v) {
+                        setState(() {
+                          _autoDaysPerWeek = v;
+                          _autoPreviewDays = previewAutomaticUsageDays(
+                            isEveryDay: _isEveryDay,
+                            isAutomaticDayMode: true,
+                            autoDaysPerWeek: _autoDaysPerWeek,
+                            startWeekday: _startDate.weekday,
+                          );
+                        });
+                      },
+                      previewDays: _autoPreviewDays,
+                    ),
+                ],
+
+                const SizedBox(height: 12),
                 MedicationMealInfo(
                   isAfterMeal: _isAfterMeal,
                   onChanged: (value) => setState(() => _isAfterMeal = value),
@@ -185,13 +356,10 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                   onSliderChanged: (value) =>
                       setState(() => _hoursBeforeOrAfterMeal = value.toInt()),
                 ),
+
                 const SizedBox(height: 20),
                 MedicationSaveButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      _submit();
-                    }
-                  },
+                  onPressed: _submit,
                 ),
               ],
             ),

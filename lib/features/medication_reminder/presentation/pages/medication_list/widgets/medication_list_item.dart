@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication.dart';
 import '../../../blocs/medication/medication_bloc.dart';
 import '../../../blocs/medication/medication_event.dart';
 import 'show_medication_details_dialog.dart';
 import 'confirm_delete_medication_dialog.dart';
+
+// utils
+import '../../../utils/medication_formatters.dart';
 
 class MedicationListItem extends StatelessWidget {
   const MedicationListItem({super.key, required this.med});
@@ -12,6 +16,12 @@ class MedicationListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final start = formatDateYmd(med.startDate);
+    final end   = formatDateYmd(med.endDate);
+    final exp   = formatDateYmd(med.expirationDate);
+    final usageDaysLabel = med.isEveryDay ? 'Her gün' : formatUsageDays(med.usageDays);
+    final meal = formatMealFromMedication(med);
+
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.only(bottom: 12),
@@ -24,7 +34,6 @@ class MedicationListItem extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Sol kısım: başlık + alt bilgi
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,15 +45,28 @@ class MedicationListItem extends StatelessWidget {
                           .titleMedium
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
-                      'Son Kullanma: ${med.expirationDate.toLocal().toString().split(' ').first}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      'Başlangıç: $start'
+                      '${end != '—' ? '   •   Bitiş: $end' : ''}'
+                      '${exp != '—' ? '   •   SKT: $exp' : ''}',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        Chip(label: Text('Doz: ${med.dailyDosage}/gün')),
+                        Chip(label: Text('Kalan: ${med.remainingPills}/${med.totalPills}')),
+                        Chip(label: Text('Saat: ${scheduleModeLabel(med.timeScheduleMode)}')),
+                        Chip(label: Text('Gün: ${scheduleModeLabel(med.dayScheduleMode)} • $usageDaysLabel')),
+                        if (meal != null) Chip(label: Text(meal)),
+                      ],
                     ),
                   ],
                 ),
               ),
-              // Sağ kısım: detay oku oku ikonu + sil
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -63,7 +85,6 @@ class MedicationListItem extends StatelessWidget {
                       );
                       if (confirmed == true) {
                         context.read<MedicationBloc>().add(RemoveMedication(med.id));
-
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('İlaç siliniyor...'),
