@@ -1,5 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
+import 'package:sifakapp/features/medication_reminder/data/data_sources/local_medication_plan_datasource.dart';
+import 'package:sifakapp/features/medication_reminder/data/repositories/medication_plan_repository_impl.dart';
+import 'package:sifakapp/features/medication_reminder/domain/repositories/medication_plan_repository.dart';
 
 import '../features/medication_reminder/data/data_sources/local_medication_datasource.dart';
 import '../features/medication_reminder/data/repositories/medication_repository_impl.dart';
@@ -29,18 +32,18 @@ void setupLocator(
   );
 
   // Plan DS/Repo hazır olduğunda (şimdilik yorumda bırakıyoruz)
-  // sl.registerLazySingleton<LocalMedicationPlanDataSource>(
-  //   () => LocalMedicationPlanDataSource(plansBox),
-  // );
+  sl.registerLazySingleton<LocalMedicationPlanDataSource>(
+    () => LocalMedicationPlanDataSource(plansBox),
+  );
 
   // ---------- Repositories ----------
   sl.registerLazySingleton<MedicationRepository>(
     () => MedicationRepositoryImpl(sl()),
   );
 
-  // sl.registerLazySingleton<MedicationPlanRepository>(
-  //   () => MedicationPlanRepositoryImpl(sl()),
-  // );
+  sl.registerLazySingleton<MedicationPlanRepository>(
+    () => MedicationPlanRepositoryImpl(sl()),
+  );
 
   // ---------- Use Cases ----------
   sl.registerLazySingleton<GetAllMedications>(() => GetAllMedications(sl()));
