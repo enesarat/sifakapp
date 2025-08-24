@@ -1,8 +1,15 @@
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
+import 'package:sifakapp/features/medication_reminder/application/notifications/notification_scheduler.dart';
+import 'package:sifakapp/features/medication_reminder/application/plan/schedule_from_plan.dart';
 import 'package:sifakapp/features/medication_reminder/data/data_sources/local_medication_plan_datasource.dart';
 import 'package:sifakapp/features/medication_reminder/data/repositories/medication_plan_repository_impl.dart';
 import 'package:sifakapp/features/medication_reminder/domain/repositories/medication_plan_repository.dart';
+import 'package:sifakapp/features/medication_reminder/domain/use_cases/plan/apply_plan_for_medication.dart';
+import 'package:sifakapp/features/medication_reminder/domain/use_cases/plan/cancel_plan_for_medication.dart';
+import 'package:sifakapp/features/medication_reminder/domain/use_cases/plan/reapply_plan_if_changed.dart';
+import 'package:sifakapp/features/medication_reminder/infra/notifications/flutter_local_notifications_scheduler.dart';
 
 import '../features/medication_reminder/data/data_sources/local_medication_datasource.dart';
 import '../features/medication_reminder/data/repositories/medication_repository_impl.dart';
@@ -25,7 +32,15 @@ final sl = GetIt.instance;
 void setupLocator(
   Box<MedicationModel> medsBox,
   Box<MedicationPlanModel> plansBox,
+  {FlutterLocalNotificationsPlugin? notificationsPlugin,}
 ) {
+
+  // ---------- Notifications ----------
+  final plugin = notificationsPlugin ?? FlutterLocalNotificationsPlugin();
+  // Eğer plugin'i main'de initialize edip yollarsan onu kullanır.
+  sl.registerLazySingleton<NotificationScheduler>(() => FlutterLocalNotificationsScheduler(plugin));
+  sl.registerLazySingleton<ScheduleFromPlan>(() => ScheduleFromPlan(sl()));
+
   // ---------- Data Sources ----------
   sl.registerLazySingleton<LocalMedicationDataSource>(
     () => LocalMedicationDataSource(medsBox),
@@ -51,8 +66,7 @@ void setupLocator(
   sl.registerLazySingleton<DeleteMedication>(() => DeleteMedication(sl()));
   sl.registerLazySingleton<EditMedication>(() => EditMedication(sl()));
 
-  // Plan tarafı use case’leri eklenince:
-  // sl.registerLazySingleton<BuildAndApplyPlan>(() => BuildAndApplyPlan(sl(), sl(), sl()));
-  // sl.registerLazySingleton<CancelPlan>(() => CancelPlan(sl(), sl()));
-  // vb.
+  sl.registerLazySingleton<ApplyPlanForMedication>(() => ApplyPlanForMedication(sl(), sl()));
+  sl.registerLazySingleton<ReapplyPlanIfChanged>(() => ReapplyPlanIfChanged(sl(), sl()));
+  sl.registerLazySingleton<CancelPlanForMedication>(() => CancelPlanForMedication(sl(), sl()));
 }

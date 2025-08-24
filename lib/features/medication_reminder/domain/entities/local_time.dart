@@ -1,4 +1,3 @@
-// domain/entities/local_time.dart
 class LocalTime {
   final int hour;   // 0..23
   final int minute; // 0..59
@@ -15,7 +14,10 @@ class LocalTime {
     return LocalTime(h, mm);
   }
 
-  @override
-  String toString() =>
+  /// "HH:mm" formatı – schedule_from_plan.dart burayı kullanıyor
+  String get hhmm =>
       '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+
+  @override
+  String toString() => hhmm; // istersen toString de hhmm döndürsün
 }

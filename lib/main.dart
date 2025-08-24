@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:sifakapp/core/bootstrapper/hive_config.dart';
 
 import 'core/service_locator.dart';
@@ -9,15 +10,31 @@ import 'core/navigation/app_routes.dart';
 import 'features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
 import 'features/medication_reminder/presentation/blocs/medication/medication_event.dart';
 
+import 'features/medication_reminder/application/notifications/notification_initializer.dart';
+// scheduler arayüzü (izin isteyeceğiz)
+import 'features/medication_reminder/application/notifications/notification_scheduler.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Tüm Hive init + adapter kayıt + box açma burada
+  // 1) Hive init + kutular
   final (medsBox, plansBox) = await HiveConfig.init();
 
-  // Service locator’ı iki kutu ile başlat
-  setupLocator(medsBox, plansBox);
+  // 2) Bildirim plugin init (tz dahil)
+  final FlutterLocalNotificationsPlugin plugin =
+      await NotificationInitializer.initialize(
+    onTap: (payload) async {
+      // TODO: payload parse edip ilgili sayfaya yönlendir (navigationKey vs.)
+    },
+  );
 
+  // 3) Service locator (plugin'i enjekte ediyoruz)
+  setupLocator(medsBox, plansBox, notificationsPlugin: plugin);
+
+  // 4) Android 13+ ve iOS izinleri (uygulama ilk açılışta ya da ayarlardan tetikleyebilirsin)
+  await sl<NotificationScheduler>().requestPermissions();
+
+  // 5) Uygulamayı başlat
   runApp(
     BlocProvider(
       create: (_) => MedicationBloc(
@@ -34,9 +51,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  static final _router = GoRouter(
-    routes: $appRoutes,
-  );
+  static final _router = GoRouter(routes: $appRoutes);
 
   @override
   Widget build(BuildContext context) {
