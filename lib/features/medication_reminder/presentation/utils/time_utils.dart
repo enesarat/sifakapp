@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:sifakapp/features/medication_reminder/application/plan/auto_time_util.dart';
 
-/// 24 saate eşit aralıklı saatler üretir.
-/// Örn: dose=3 -> 00:00, 08:00, 16:00
+/// Otomatik saat dağıtımı için tek kaynak: `autoDistributeTimes`.
+/// UI tarafında TimeOfDay listesine dönüştürür ve sıralar.
+/// Örn: dose=3 -> 08:00, 14:00, 20:00 (plan ile birebir aynı)
 List<TimeOfDay> generateEvenlySpacedTimes(int dose) {
-  final d = (dose <= 0) ? 1 : dose;
-  final List<TimeOfDay> times = [];
-  final interval = (24 / d).floor();
-  for (int i = 0; i < d; i++) {
-    times.add(TimeOfDay(hour: (i * interval) % 24, minute: 0));
-  }
-  return times;
+  final minutes = autoDistributeTimes(dose)..sort();
+  return minutes
+      .map((m) => TimeOfDay(hour: (m ~/ 60) % 24, minute: m % 60))
+      .toList();
 }
+
