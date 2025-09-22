@@ -1,4 +1,5 @@
 // lib/features/medication_reminder/application/notifications/notification_initializer.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
@@ -17,12 +18,30 @@ class NotificationInitializer {
     try {
       // Örn: "Europe/Istanbul"
       localTz = await FlutterTimezone.getLocalTimezone();
-    } catch (_) {}
-    try {
-      tz.setLocalLocation(tz.getLocation(localTz));
-    } catch (_) {
-      tz.setLocalLocation(tz.getLocation('UTC'));
+    } catch (e) {
+      debugPrint('FlutterTimezone.getLocalTimezone() failed: $e');
     }
+
+    String appliedTz = localTz;
+    try {
+      // Bazı emülatörler UTC döndürebiliyor; sistem offset'i 0 değilse makul bir fallback deneyelim
+      final offset = DateTime.now().timeZoneOffset;
+      final isLikelyUtc = localTz.isEmpty ||
+          localTz.toUpperCase() == 'UTC' ||
+          localTz.toUpperCase() == 'ETC/UTC' ||
+          localTz.toUpperCase() == 'GMT';
+      if (isLikelyUtc && offset.inMinutes != 0) {
+        if (offset.inHours == 3) {
+          appliedTz = 'Europe/Istanbul';
+        }
+      }
+      tz.setLocalLocation(tz.getLocation(appliedTz));
+    } catch (e) {
+      debugPrint('tz.setLocalLocation failed for "$appliedTz". Falling back to UTC. Error: $e');
+      tz.setLocalLocation(tz.getLocation('UTC'));
+      appliedTz = 'UTC';
+    }
+    debugPrint('Timezone init: platform="$localTz" applied="$appliedTz" offset=${DateTime.now().timeZoneOffset}');
 
     // --- Plugin init ---
     final plugin = FlutterLocalNotificationsPlugin();
@@ -61,5 +80,5 @@ class NotificationInitializer {
 // OPTIONAL: arka plan tık callback (Android 12L+)
 @pragma('vm:entry-point')
 Future<void> _notificationTapBg(NotificationResponse response) async {
-  // payload işlemleri (minimum), app açıldığında detaylı yönlendirme
+  // payload işleme (minimum), app açıldığında detaylı yönlendirme
 }

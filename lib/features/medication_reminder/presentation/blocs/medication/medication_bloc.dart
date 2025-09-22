@@ -4,6 +4,9 @@ import '../../../domain/use_cases/create_medication.dart';
 import '../../../domain/use_cases/delete_medication.dart';
 import '../../../domain/use_cases/edit_medication.dart';
 import '../../../domain/use_cases/get_all_medications.dart';
+import '../../../domain/use_cases/plan/apply_plan_for_medication.dart';
+import '../../../domain/use_cases/plan/reapply_plan_if_changed.dart';
+import '../../../domain/use_cases/plan/cancel_plan_for_medication.dart';
 import 'medication_event.dart';
 import 'medication_state.dart';
 
@@ -12,12 +15,18 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
   final CreateMedication createMedication;
   final DeleteMedication deleteMedication;
   final EditMedication editMedication;
+  final ApplyPlanForMedication applyPlanForMedication;
+  final ReapplyPlanIfChanged reapplyPlanIfChanged;
+  final CancelPlanForMedication cancelPlanForMedication;
 
   MedicationBloc({
     required this.getAllMedications,
     required this.createMedication,
     required this.deleteMedication,
     required this.editMedication,
+    required this.applyPlanForMedication,
+    required this.reapplyPlanIfChanged,
+    required this.cancelPlanForMedication,
   }) : super(MedicationInitial()) {
     on<FetchAllMedications>(_onFetchAll);
     on<AddMedication>(_onAdd);
@@ -46,6 +55,11 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
       // Tercihen createMedication, kaydedilen Medication veya id dönebilir.
       await createMedication.call(event.medication);
 
+      // Kaydedilen ilaç için planı uygula (schedule + persist)
+      try {
+        await applyPlanForMedication.call(event.medication);
+      } catch (_) {}
+
       // 1) Başarı sinyalini ver
       emit(MedicationCreated(event.medication));
 
@@ -61,6 +75,10 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
       Emitter<MedicationState> emit,
     ) async {
       try {
+        // Önce planları iptal et, sonra ilacı sil
+        try {
+          await cancelPlanForMedication.call(event.id);
+        } catch (_) {}
         await deleteMedication.call(event.id);
 
         // 1) Başarı sinyali
@@ -79,6 +97,11 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     ) async {
       try {
         await editMedication.call(event.medication);
+
+        // Değişiklik varsa planı yeniden uygula
+        try {
+          await reapplyPlanIfChanged.call(event.medication);
+        } catch (_) {}
 
         // 1) Başarı sinyali
         emit(MedicationUpdated(event.medication));

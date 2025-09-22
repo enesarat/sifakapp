@@ -1,0 +1,111 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:sifakapp/core/service_locator.dart';
+import 'package:sifakapp/features/medication_reminder/application/notifications/notification_scheduler.dart';
+import 'package:permission_handler/permission_handler.dart'; 
+import '../debug_pending_notifications_page.dart';
+
+class MedicationListAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const MedicationListAppBar({super.key});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      title: const Text('İlaçlarım'),
+      actions: [ 
+        if (kDebugMode)
+          IconButton(
+            tooltip: 'Bekleyen Bildirimler',
+            icon: const Icon(Icons.list_alt_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const DebugPendingNotificationsPage(),
+                ),
+              );
+            },
+          ),
+        if (kDebugMode)
+          IconButton(
+            tooltip: 'Bildirim İzni',
+            icon: const Icon(Icons.verified_user_outlined),
+            onPressed: () async {
+              final status = await Permission.notification.status;
+              if (!status.isGranted) {
+                final result = await Permission.notification.request();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Bildirim izni: ${result.toString()}')),
+                  );
+                }
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Bildirim izni zaten verilmiş.')),
+                  );
+                }
+              }
+            },
+          ),
+        if (kDebugMode)
+          IconButton(
+            tooltip: 'Göster (hemen)',
+            icon: const Icon(Icons.notification_important_outlined),
+            onPressed: () async {
+              final id = DateTime.now().millisecondsSinceEpoch % 0x7fffffff;
+              try {
+                await sl<NotificationScheduler>().showNow(
+                  id: id,
+                  title: 'Test Anlık',
+                  body: 'Bu bildirim hemen gösterildi.',
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Anlık bildirim gönderildi.')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Anlık bildirim hatası: $e')),
+                  );
+                }
+              }
+            },
+          ),
+        if (kDebugMode)
+          IconButton(
+            tooltip: 'Test Bildirim (+30sn)',
+            icon: const Icon(Icons.notifications_active_outlined),
+            onPressed: () async {
+              final now = DateTime.now();
+              final at = now.add(const Duration(seconds: 30));
+              final id = now.millisecondsSinceEpoch % 0x7fffffff;
+              try {
+                await sl<NotificationScheduler>().scheduleOneOff(
+                  id: id,
+                  title: 'Test Bildirim',
+                  body: 'One-off (+30sn) denemesi',
+                  atLocal: at,
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Test bildirimi planlandı: ${at.toLocal()}')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Planlama hatası: $e')),
+                  );
+                }
+              }
+            },
+          ),
+      ],
+    );
+  }
+}

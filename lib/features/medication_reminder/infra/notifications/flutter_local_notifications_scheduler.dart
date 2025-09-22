@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -9,6 +10,7 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
   final FlutterLocalNotificationsPlugin _plugin;
 
   const FlutterLocalNotificationsScheduler(this._plugin);
+
 
   AndroidNotificationDetails get _androidDetails => const AndroidNotificationDetails(
         'med_reminders',
@@ -34,25 +36,41 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
 
   @override
   Future<void> requestPermissions() async {
-  if (Platform.isAndroid) {
-    // Android 13+ (SDK 33) bildirim izni
-    final status = await Permission.notification.status;
-    if (!status.isGranted) {
-      await Permission.notification.request();
-    }
-    // Android <13 için ayrı bir runtime izin yok; manifest yeterli.
-  } else if (Platform.isIOS || Platform.isMacOS) {
-    // Darwin/iOS izinleri
-    // await _plugin
-    //     .resolvePlatformSpecificImplementation<DarwinFlutterLocalNotificationsPlugin>()
-    //     ?.requestPermissions(alert: true, sound: true, badge: false);
+    if (Platform.isAndroid) {
+      // Android 13+ (SDK 33) bildirim izni
+      final status = await Permission.notification.status;
+      if (!status.isGranted) {
+        await Permission.notification.request();
+      }
 
-    // Eğer pakette Darwin yoksa:
-    await _plugin
-      .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
-      ?.requestPermissions(alert: true, sound: true, badge: false);
+      // OS tarafından uygulama bildirimleri kapalı olabilir (kanal/uygulama seviyesi)
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      try {
+        final enabled = await android?.areNotificationsEnabled() ?? true;
+        if (!enabled) {
+          // Kullanıcıyı ayarlara yönlendirmek istersen:
+          // await openAppSettings();
+        }
+
+        // Exact alarm yeteneği hakkında bilgi logla (varsa)
+        try {
+          final dynamic dyn = android;
+          if (dyn != null && dyn.canScheduleExactAlarms is Function) {
+            final bool canExact = await dyn.canScheduleExactAlarms();
+          }
+        } catch (_) {}
+      } catch (_) {}
+
+      // Exact alarm izni (Android 12+) OS ayarlarından verilir.
+      // Planlama sırasında izin yoksa inexact moda düşmek için aşağıda kontrol var.
+    } else if (Platform.isIOS || Platform.isMacOS) {
+      // iOS/macOS izinleri (geniş uyumluluk için IOSFlutterLocalNotificationsPlugin)
+      await _plugin
+          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, sound: true, badge: false);
+    }
   }
-}
 
   @override
   Future<void> scheduleDaily({
@@ -69,16 +87,13 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
       scheduled = scheduled.add(const Duration(days: 1));
     }
 
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduled,
-      _details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-      payload: payloadJson,
+    await _zonedScheduleWithFallback(
+      id: id,
+      title: title,
+      body: body,
+      when: scheduled,
+      payloadJson: payloadJson,
+      matchComponents: DateTimeComponents.time,
     );
   }
 
@@ -93,16 +108,13 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
     String? payloadJson,
   }) async {
     final next = _nextInstanceOfWeekdayAndTime(weekday, hour, minute);
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      next,
-      _details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-      payload: payloadJson,
+    await _zonedScheduleWithFallback(
+      id: id,
+      title: title,
+      body: body,
+      when: next,
+      payloadJson: payloadJson,
+      matchComponents: DateTimeComponents.dayOfWeekAndTime,
     );
   }
 
@@ -118,14 +130,27 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
     if (when.isBefore(tz.TZDateTime.now(tz.local))) {
       return; // geçmişe kurma; istersen throw/skip
     }
-    await _plugin.zonedSchedule(
+    await _zonedScheduleWithFallback(
+      id: id,
+      title: title,
+      body: body,
+      when: when,
+      payloadJson: payloadJson,
+    );
+  }
+
+  @override
+  Future<void> showNow({
+    required int id,
+    required String title,
+    required String body,
+    String? payloadJson,
+  }) async {
+    await _plugin.show(
       id,
       title,
       body,
-      when,
       _details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       payload: payloadJson,
     );
   }
@@ -140,6 +165,19 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
     }
   }
 
+  @override
+  Future<List<PendingNotification>> listPending() async {
+    final reqs = await _plugin.pendingNotificationRequests();
+    return reqs
+        .map((r) => PendingNotification(
+              id: r.id,
+              title: r.title,
+              body: r.body,
+              payloadJson: r.payload,
+            ))
+        .toList();
+  }
+
   tz.TZDateTime _nextInstanceOfWeekdayAndTime(int weekday, int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
     var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
@@ -149,4 +187,60 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
     }
     return scheduled;
   }
+
+  Future<void> _zonedScheduleWithFallback({
+    required int id,
+    required String title,
+    required String body,
+    required tz.TZDateTime when,
+    String? payloadJson,
+    DateTimeComponents? matchComponents,
+  }) async {
+    try {
+      var scheduleMode = AndroidScheduleMode.exactAllowWhileIdle;
+      if (Platform.isAndroid) {
+        final android = _plugin
+            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+        try {
+          final dynamic dyn = android;
+          if (dyn != null && dyn.canScheduleExactAlarms is Function) {
+            final bool canExact = await dyn.canScheduleExactAlarms();
+            if (!canExact) {
+              scheduleMode = AndroidScheduleMode.inexactAllowWhileIdle;
+            }
+          }
+        } catch (_) {}
+      }
+
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        when,
+        _details,
+        androidScheduleMode: scheduleMode,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: matchComponents,
+        payload: payloadJson,
+      );
+    } on PlatformException catch (e) {
+      final code = e.code.toString().toLowerCase();
+      final msg = (e.message ?? '').toLowerCase();
+      if (code.contains('exact') || msg.contains('exact')) {
+        await _plugin.zonedSchedule(
+          id,
+          title,
+          body,
+          when,
+          _details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: matchComponents,
+          payload: payloadJson,
+        );
+      } else {
+        rethrow;
+      }
+    }
+} 
 }
