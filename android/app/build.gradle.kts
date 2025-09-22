@@ -16,7 +16,8 @@ android {
 
     defaultConfig {
         applicationId = "com.arat.sifakapp"
-        minSdk = flutter.minSdkVersion
+        // Bump minSdk to satisfy awesome_notifications (requires >=23)
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

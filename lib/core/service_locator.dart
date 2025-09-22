@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:sifakapp/features/medication_reminder/application/notifications/notification_scheduler.dart';
@@ -10,6 +11,7 @@ import 'package:sifakapp/features/medication_reminder/domain/use_cases/plan/appl
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/plan/cancel_plan_for_medication.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/plan/reapply_plan_if_changed.dart';
 import 'package:sifakapp/features/medication_reminder/infra/notifications/flutter_local_notifications_scheduler.dart';
+import 'package:sifakapp/features/medication_reminder/infra/notifications/awesome_notifications_scheduler.dart';
 
 import '../features/medication_reminder/data/data_sources/local_medication_datasource.dart';
 import '../features/medication_reminder/data/repositories/medication_repository_impl.dart';
@@ -32,13 +34,17 @@ final sl = GetIt.instance;
 void setupLocator(
   Box<MedicationModel> medsBox,
   Box<MedicationPlanModel> plansBox,
-  {FlutterLocalNotificationsPlugin? notificationsPlugin,}
+  {FlutterLocalNotificationsPlugin? notificationsPlugin, bool useAwesomeNotifications = false}
 ) {
 
   // ---------- Notifications ----------
-  final plugin = notificationsPlugin ?? FlutterLocalNotificationsPlugin();
-  // Eğer plugin'i main'de initialize edip yollarsan onu kullanır.
-  sl.registerLazySingleton<NotificationScheduler>(() => FlutterLocalNotificationsScheduler(plugin));
+  if (useAwesomeNotifications) {
+    AwesomeNotificationsScheduler.initialize();
+    sl.registerLazySingleton<NotificationScheduler>(() => AwesomeNotificationsScheduler());
+  } else {
+    final plugin = notificationsPlugin ?? FlutterLocalNotificationsPlugin();
+    sl.registerLazySingleton<NotificationScheduler>(() => FlutterLocalNotificationsScheduler(plugin));
+  }
   sl.registerLazySingleton<ScheduleFromPlan>(() => ScheduleFromPlan(sl()));
 
   // ---------- Data Sources ----------
