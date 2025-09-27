@@ -17,6 +17,7 @@ import 'features/medication_reminder/infra/notifications/flutter_local_notificat
 import 'features/medication_reminder/infra/notifications/awesome_notifications_scheduler.dart';
 import 'features/medication_reminder/domain/use_cases/get_all_medications.dart';
 import 'features/medication_reminder/domain/use_cases/plan/reapply_plan_if_changed.dart';
+import 'core/background/missed_dose_worker.dart';
 const bool kUseAwesomeNotifications = true;
 
 Future<void> main() async {
@@ -41,10 +42,13 @@ Future<void> main() async {
   // 3) Service locator (plugin'i enjekte ediyoruz)
   setupLocator(medsBox, plansBox, notificationsPlugin: plugin, useAwesomeNotifications: kUseAwesomeNotifications);
 
-  // 4) Android 13+ ve iOS izinleri (uygulama ilk aÃ§Ä±lÄ±ÅŸta ya da ayarlardan tetikleyebilirsin)
+  // 4) Android 13+ ve iOS izinleri (uygulama ilk açıldığında ya da ayarlardan tetikleyebilirsin)
   await sl<NotificationScheduler>().requestPermissions();
 
-  // Reboot sonras planlar tekrar kur (persist edilen veriden)
+  // Boot sonrası arka planda kaçırılan doz kontrolü için iş planla
+  await registerMissedDoseWorker();
+
+  // Reboot sonrası planları tekrar kur (persist edilen veriden)
   try {
     final meds = await sl<GetAllMedications>()();
     final reapply = sl<ReapplyPlanIfChanged>();
