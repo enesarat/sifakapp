@@ -15,6 +15,8 @@ import 'features/medication_reminder/application/notifications/notification_init
 import 'features/medication_reminder/application/notifications/notification_scheduler.dart';
 import 'features/medication_reminder/infra/notifications/flutter_local_notifications_scheduler.dart';
 import 'features/medication_reminder/infra/notifications/awesome_notifications_scheduler.dart';
+import 'features/medication_reminder/domain/use_cases/get_all_medications.dart';
+import 'features/medication_reminder/domain/use_cases/plan/reapply_plan_if_changed.dart';
 const bool kUseAwesomeNotifications = true;
 
 Future<void> main() async {
@@ -41,6 +43,15 @@ Future<void> main() async {
 
   // 4) Android 13+ ve iOS izinleri (uygulama ilk aÃ§Ä±lÄ±ÅŸta ya da ayarlardan tetikleyebilirsin)
   await sl<NotificationScheduler>().requestPermissions();
+
+  // Reboot sonras planlar tekrar kur (persist edilen veriden)
+  try {
+    final meds = await sl<GetAllMedications>()();
+    final reapply = sl<ReapplyPlanIfChanged>();
+    for (final m in meds) {
+      await reapply(m);
+    }
+  } catch (_) {}
 
   // 5) UygulamayÄ± baÅŸlat
   runApp(

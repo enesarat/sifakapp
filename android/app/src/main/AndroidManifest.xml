@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <!-- Android 14 (SDK 34) ve üstü için normal izinle kesin alarmlar -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <!-- <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/> -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application
         android:label="sifakapp"
         android:name="${applicationName}"
