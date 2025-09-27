@@ -146,7 +146,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _startDate,
-      firstDate: DateTime.now(),
+      firstDate: DateTime(2000, 1, 1),
       lastDate: DateTime(2100),
     );
     if (picked != null) {
@@ -178,7 +178,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime.now(),
+      firstDate: DateTime(2000, 1, 1),
       lastDate: DateTime(2100),
     );
     if (picked != null) setState(() => _expirationDate = picked);

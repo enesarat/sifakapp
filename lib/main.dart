@@ -11,7 +11,7 @@ import 'features/medication_reminder/presentation/blocs/medication/medication_bl
 import 'features/medication_reminder/presentation/blocs/medication/medication_event.dart';
 
 import 'features/medication_reminder/application/notifications/notification_initializer.dart';
-// scheduler arayÃ¼zÃ¼ (izin isteyeceÄŸiz)
+// scheduler arayüzü (izin isteyeceğiz)
 import 'features/medication_reminder/application/notifications/notification_scheduler.dart';
 import 'features/medication_reminder/infra/notifications/flutter_local_notifications_scheduler.dart';
 import 'features/medication_reminder/infra/notifications/awesome_notifications_scheduler.dart';
