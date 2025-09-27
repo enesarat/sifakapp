@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sifakapp/core/navigation/app_routes.dart';
 import 'package:sifakapp/features/medication_reminder/application/plan/plan_builder.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/get_all_medications.dart';
@@ -57,12 +59,11 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kaçırılan Dozlar'),
+      appBar: AppBar(automaticallyImplyLeading: false, title: const Text('Kaçırılan Dozlar'),
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () { context.go(const HomeRoute().location); },
             tooltip: 'Kapat',
           )
         ],
@@ -117,4 +118,8 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
     );
   }
 }
+
+
+
+
 

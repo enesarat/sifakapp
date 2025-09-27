@@ -54,7 +54,7 @@ Future<void> main() async {
   ReceivedAction? initialAction;
   if (kUseAwesomeNotifications) {
     initialAction = await AwesomeNotifications()
-        .getInitialNotificationAction(removeFromActionEvents: false);
+        .getInitialNotificationAction(removeFromActionEvents: true);
   }
 
   // Register hot-tap listener
