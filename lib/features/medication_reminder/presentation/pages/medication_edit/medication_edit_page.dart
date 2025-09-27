@@ -185,9 +185,12 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
   }
 
   Future<void> _pickTime(int index) async {
+    final initial = (_manualTimes.length > index)
+        ? _manualTimes[index]
+        : TimeOfDay(hour: 8 + index * 3, minute: 0);
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: 8 + index * 3, minute: 0),
+      initialTime: initial,
     );
     if (picked != null) {
       setState(() {
