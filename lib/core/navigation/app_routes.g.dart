@@ -10,6 +10,7 @@ List<RouteBase> get $appRoutes => [
       $homeRoute,
       $medicationFormRoute,
       $medicationEditRoute,
+      $missedDosesRoute,
     ];
 
 RouteBase get $homeRoute => GoRouteData.$route(
@@ -70,6 +71,29 @@ extension $MedicationEditRouteExtension on MedicationEditRoute {
 
   String get location => GoRouteData.$location(
         '/medications/${Uri.encodeComponent(id)}/edit',
+      );
+
+  void go(BuildContext context) => context.go(location);
+
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $missedDosesRoute => GoRouteData.$route(
+      path: '/missed',
+      factory: $MissedDosesRouteExtension._fromState,
+    );
+
+extension $MissedDosesRouteExtension on MissedDosesRoute {
+  static MissedDosesRoute _fromState(GoRouterState state) =>
+      const MissedDosesRoute();
+
+  String get location => GoRouteData.$location(
+        '/missed',
       );
 
   void go(BuildContext context) => context.go(location);

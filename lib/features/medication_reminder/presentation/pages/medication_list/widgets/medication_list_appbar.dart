@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import '../../missed/missed_doses_page.dart';
 
 class MedicationListAppBar extends StatelessWidget implements PreferredSizeWidget {
   const MedicationListAppBar({super.key});
@@ -9,7 +10,19 @@ class MedicationListAppBar extends StatelessWidget implements PreferredSizeWidge
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text('İlaçlarım'),
+      title: const Text('İlaçlarım'),
+      actions: [
+        IconButton(
+          tooltip: 'Kaçırılan dozlar',
+          icon: const Icon(Icons.notification_important_outlined),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MissedDosesPage()),
+            );
+          },
+        ),
+      ],
     );
   }
 }
+

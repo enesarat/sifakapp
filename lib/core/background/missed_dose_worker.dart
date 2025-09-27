@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:ui';
 
 import 'package:awesome_notifications/awesome_notifications.dart';
@@ -20,7 +20,6 @@ Future<void> registerMissedDoseWorker() async {
   await Workmanager().registerPeriodicTask(
     kMissedDoseUniqueName,
     kMissedDoseTask,
-    // Android en az ~15 dakika destekler; test için 15 dk seçildi
     frequency: const Duration(minutes: 15),
   );
 }
@@ -33,7 +32,6 @@ void callbackDispatcher() {
 
     if (task != kMissedDoseTask) return Future.value(true);
 
-    // Ensure notification channel exists (idempotent)
     await AwesomeNotificationsScheduler.initialize();
 
     try {
@@ -45,7 +43,7 @@ void callbackDispatcher() {
       final now = DateTime.now();
       final from = now.subtract(const Duration(hours: 5));
 
-      var hasMissed = false;
+      var missedCount = 0;
       for (final med in meds) {
         final plan = PlanBuilder.buildOneOffHorizon(
           med,
@@ -53,20 +51,19 @@ void callbackDispatcher() {
           to: now,
         );
         final missed = plan.oneOffs.where((o) => !o.scheduledAt.isAfter(now));
-        if (missed.isNotEmpty) {
-          hasMissed = true;
-          break;
-        }
+        missedCount += missed.length;
       }
 
-      if (hasMissed) {
+      if (missedCount > 0) {
+        final body = 'Cihazınız kapalıyken zamanı atlanmış dozlarınız bulunmaktadır!\nSon 5 saatte $missedCount doz kaçırıldı';
         await AwesomeNotifications().createNotification(
           content: NotificationContent(
             id: 910001,
             channelKey: 'med_reminders',
             title: 'Kaçırılan dozlar',
-            body: 'Cihazınız kapalıyken zamanı atlanmış dozlarınız bulunmaktadır!',
+            body: body,
             category: NotificationCategory.Reminder,
+            payload: const {'type': 'missed_dose'},
           ),
         );
       }

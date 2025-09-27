@@ -2,22 +2,22 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:sifakapp/core/bootstrapper/hive_config.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
-import 'core/service_locator.dart';
+import 'core/bootstrapper/hive_config.dart';
 import 'core/navigation/app_routes.dart';
-
-import 'features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
-import 'features/medication_reminder/presentation/blocs/medication/medication_event.dart';
+import 'core/service_locator.dart';
 
 import 'features/medication_reminder/application/notifications/notification_initializer.dart';
-// scheduler arayüzü (izin isteyeceğiz)
 import 'features/medication_reminder/application/notifications/notification_scheduler.dart';
-import 'features/medication_reminder/infra/notifications/flutter_local_notifications_scheduler.dart';
-import 'features/medication_reminder/infra/notifications/awesome_notifications_scheduler.dart';
 import 'features/medication_reminder/domain/use_cases/get_all_medications.dart';
 import 'features/medication_reminder/domain/use_cases/plan/reapply_plan_if_changed.dart';
+import 'features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
+import 'features/medication_reminder/presentation/blocs/medication/medication_event.dart';
+import 'features/medication_reminder/infra/notifications/awesome_notifications_scheduler.dart';
 import 'core/background/missed_dose_worker.dart';
+
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 const bool kUseAwesomeNotifications = true;
 
 Future<void> main() async {
@@ -27,28 +27,21 @@ Future<void> main() async {
     await AwesomeNotificationsScheduler.initialize();
   }
 
-  // 1) Hive init + kutular
   final (medsBox, plansBox) = await HiveConfig.init();
 
-  // 2) Bildirim plugin init (tz dahil)
   final FlutterLocalNotificationsPlugin plugin =
-      await NotificationInitializer.initialize(
-    onTap: (payload) async {
-      // TODO: payload parse edip ilgili sayfaya yÃ¶nlendir (navigationKey vs.)
-    },
+      await NotificationInitializer.initialize(onTap: (payload) async {});
+
+  setupLocator(
+    medsBox,
+    plansBox,
+    notificationsPlugin: plugin,
+    useAwesomeNotifications: kUseAwesomeNotifications,
   );
 
-  // Debug flagler kapalÄ± (prod)
-  // 3) Service locator (plugin'i enjekte ediyoruz)
-  setupLocator(medsBox, plansBox, notificationsPlugin: plugin, useAwesomeNotifications: kUseAwesomeNotifications);
-
-  // 4) Android 13+ ve iOS izinleri (uygulama ilk açıldığında ya da ayarlardan tetikleyebilirsin)
   await sl<NotificationScheduler>().requestPermissions();
-
-  // Boot sonrası arka planda kaçırılan doz kontrolü için iş planla
   await registerMissedDoseWorker();
 
-  // Reboot sonrası planları tekrar kur (persist edilen veriden)
   try {
     final meds = await sl<GetAllMedications>()();
     final reapply = sl<ReapplyPlanIfChanged>();
@@ -57,7 +50,27 @@ Future<void> main() async {
     }
   } catch (_) {}
 
-  // 5) UygulamayÄ± baÅŸlat
+  // Read initial action without removing from stream
+  ReceivedAction? initialAction;
+  if (kUseAwesomeNotifications) {
+    initialAction = await AwesomeNotifications()
+        .getInitialNotificationAction(removeFromActionEvents: false);
+  }
+
+  // Register hot-tap listener
+  if (kUseAwesomeNotifications) {
+    AwesomeNotifications().setListeners(
+      onActionReceivedMethod: (action) async {
+        if (action.payload?['type'] == 'missed_dose') {
+          final ctx = rootNavigatorKey.currentContext;
+          if (ctx != null) {
+            ctx.go(const MissedDosesRoute().location);
+          }
+        }
+      },
+    );
+  }
+
   runApp(
     BlocProvider(
       create: (_) => MedicationBloc(
@@ -69,20 +82,41 @@ Future<void> main() async {
         reapplyPlanIfChanged: sl(),
         cancelPlanForMedication: sl(),
       )..add(FetchAllMedications()),
-      child: const MyApp(),
+      child: MyApp(initialAction: initialAction),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  final ReceivedAction? initialAction;
+  const MyApp({super.key, this.initialAction});
 
-  static final _router = GoRouter(routes: $appRoutes);
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  static final _router =
+      GoRouter(navigatorKey: rootNavigatorKey, routes: $appRoutes);
+
+  @override
+  void initState() {
+    super.initState();
+    // Cold-start navigation (after first frame)
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (widget.initialAction?.payload?['type'] == 'missed_dose') {
+        final ctx = rootNavigatorKey.currentContext;
+        if (ctx != null) {
+          ctx.go(const MissedDosesRoute().location);
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'İlaç Hatırlatıcı',
+      title: 'Ilac Hatirlatici',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
@@ -90,4 +124,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
