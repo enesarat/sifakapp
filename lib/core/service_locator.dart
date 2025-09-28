@@ -22,6 +22,8 @@ import '../features/medication_reminder/domain/use_cases/create_medication.dart'
 import '../features/medication_reminder/domain/use_cases/delete_medication.dart';
 import '../features/medication_reminder/domain/use_cases/edit_medication.dart';
 import '../features/medication_reminder/domain/use_cases/get_all_medications.dart';
+import '../features/medication_reminder/domain/use_cases/consume_dose.dart';
+import '../features/medication_reminder/domain/use_cases/skip_dose.dart';
 
 // Plan tarafı (kutuyu alacağız; repo/datasource’u ekleyince burayı açarız)
 import '../features/medication_reminder/data/models/medication_plan_model.dart';
@@ -71,6 +73,8 @@ void setupLocator(
   sl.registerLazySingleton<CreateMedication>(() => CreateMedication(sl()));
   sl.registerLazySingleton<DeleteMedication>(() => DeleteMedication(sl()));
   sl.registerLazySingleton<EditMedication>(() => EditMedication(sl()));
+  sl.registerLazySingleton<ConsumeDose>(() => ConsumeDose(sl()));
+  sl.registerLazySingleton<SkipDose>(() => const SkipDose());
 
   sl.registerLazySingleton<ApplyPlanForMedication>(() => ApplyPlanForMedication(sl(), sl()));
   sl.registerLazySingleton<ReapplyPlanIfChanged>(() => ReapplyPlanIfChanged(sl(), sl()));

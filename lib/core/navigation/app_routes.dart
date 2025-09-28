@@ -5,6 +5,7 @@ import 'package:sifakapp/features/medication_reminder/domain/entities/medication
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_edit/medication_edit_page.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/medication_list_page.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_form/medication_form_page.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/pages/dose_intake/dose_intake_page.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/missed/missed_doses_page.dart';
 
 part 'app_routes.g.dart';
@@ -35,6 +36,19 @@ class MedicationEditRoute extends GoRouteData {
     // Listeden gelirken extra ile Medication taÅŸÄ±yacaÄŸÄ±z
     final med = state.extra as Medication?;
     return MedicationEditPage(id: id, initialMedication: med);
+  }
+}
+
+@TypedGoRoute<DoseIntakeRoute>(path: '/dose/:id')
+class DoseIntakeRoute extends GoRouteData {
+  const DoseIntakeRoute({required this.id, this.occurrenceAt});
+  final String id;
+  final DateTime? occurrenceAt;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    // occurrenceAt could also be carried via query params; here passed via constructor
+    return DoseIntakePage(id: id, occurrenceAt: occurrenceAt);
   }
 }
 

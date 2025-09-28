@@ -1,4 +1,4 @@
-// medication_bloc.dart
+﻿// medication_bloc.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/use_cases/create_medication.dart';
 import '../../../domain/use_cases/delete_medication.dart';
@@ -7,6 +7,8 @@ import '../../../domain/use_cases/get_all_medications.dart';
 import '../../../domain/use_cases/plan/apply_plan_for_medication.dart';
 import '../../../domain/use_cases/plan/reapply_plan_if_changed.dart';
 import '../../../domain/use_cases/plan/cancel_plan_for_medication.dart';
+import '../../../domain/use_cases/consume_dose.dart';
+import '../../../domain/use_cases/skip_dose.dart';
 import 'medication_event.dart';
 import 'medication_state.dart';
 
@@ -18,6 +20,8 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
   final ApplyPlanForMedication applyPlanForMedication;
   final ReapplyPlanIfChanged reapplyPlanIfChanged;
   final CancelPlanForMedication cancelPlanForMedication;
+  final ConsumeDose consumeDose;
+  final SkipDose skipDose;
 
   MedicationBloc({
     required this.getAllMedications,
@@ -27,11 +31,15 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     required this.applyPlanForMedication,
     required this.reapplyPlanIfChanged,
     required this.cancelPlanForMedication,
+    required this.consumeDose,
+    required this.skipDose,
   }) : super(MedicationInitial()) {
     on<FetchAllMedications>(_onFetchAll);
     on<AddMedication>(_onAdd);
     on<RemoveMedication>(_onRemove);
     on<UpdateMedication>(_onUpdate);
+    on<ConsumeMedicationDose>(_onConsumeDose);
+    on<SkipMedicationDose>(_onSkipDose);
   }
 
   Future<void> _onFetchAll(
@@ -52,65 +60,72 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     Emitter<MedicationState> emit,
   ) async {
     try {
-      // Tercihen createMedication, kaydedilen Medication veya id dönebilir.
       await createMedication.call(event.medication);
-
-      // Kaydedilen ilaç için planı uygula (schedule + persist)
       try {
         await applyPlanForMedication.call(event.medication);
       } catch (_) {}
-
-      // 1) Başarı sinyalini ver
       emit(MedicationCreated(event.medication));
-
-      // 2) Listeyi tazele (UI zaten success'i dinleyebilir)
       add(FetchAllMedications());
     } catch (e) {
       emit(MedicationError('Kayıt eklenemedi. Lütfen tekrar deneyin.'));
     }
   }
 
-    Future<void> _onRemove(
-      RemoveMedication event,
-      Emitter<MedicationState> emit,
-    ) async {
+  Future<void> _onRemove(
+    RemoveMedication event,
+    Emitter<MedicationState> emit,
+  ) async {
+    try {
       try {
-        // Önce planları iptal et, sonra ilacı sil
-        try {
-          await cancelPlanForMedication.call(event.id);
-        } catch (_) {}
-        await deleteMedication.call(event.id);
-
-        // 1) Başarı sinyali
-        emit(MedicationDeleted(event.id));
-
-        // 2) Listeyi tazele
-        add(FetchAllMedications());
-      } catch (e) {
-        emit(MedicationError('Kayıt silinemedi. Lütfen tekrar deneyin.'));
-      }
+        await cancelPlanForMedication.call(event.id);
+      } catch (_) {}
+      await deleteMedication.call(event.id);
+      emit(MedicationDeleted(event.id));
+      add(FetchAllMedications());
+    } catch (e) {
+      emit(MedicationError('Kayıt silinemedi. Lütfen tekrar deneyin.'));
     }
+  }
 
-    Future<void> _onUpdate(
-      UpdateMedication event,
-      Emitter<MedicationState> emit,
-    ) async {
+  Future<void> _onUpdate(
+    UpdateMedication event,
+    Emitter<MedicationState> emit,
+  ) async {
+    try {
+      await editMedication.call(event.medication);
       try {
-        await editMedication.call(event.medication);
-
-        // Değişiklik varsa planı yeniden uygula
-        try {
-          await reapplyPlanIfChanged.call(event.medication);
-        } catch (_) {}
-
-        // 1) Başarı sinyali
-        emit(MedicationUpdated(event.medication));
-
-        // 2) Listeyi tazele
-        add(FetchAllMedications());
-      } catch (e) {
-        emit(MedicationError('Kayıt güncellenemedi. Lütfen tekrar deneyin.'));
-      }
+        await reapplyPlanIfChanged.call(event.medication);
+      } catch (_) {}
+      emit(MedicationUpdated(event.medication));
+      add(FetchAllMedications());
+    } catch (e) {
+      emit(MedicationError('Kayıt güncellenemedi. Lütfen tekrar deneyin.'));
     }
+  }
 
+  Future<void> _onConsumeDose(
+    ConsumeMedicationDose event,
+    Emitter<MedicationState> emit,
+  ) async {
+    try {
+      final updated = await consumeDose.call(event.id);
+      emit(DoseConsumed(updated));
+      add(FetchAllMedications());
+    } catch (e) {
+      emit(MedicationError('Doz kullanılamadı. Lütfen tekrar deneyin.'));
+    }
+  }
+
+  Future<void> _onSkipDose(
+    SkipMedicationDose event,
+    Emitter<MedicationState> emit,
+  ) async {
+    try {
+      await skipDose.call(event.id);
+      emit(DoseSkipped(event.id));
+      add(FetchAllMedications());
+    } catch (e) {
+      emit(MedicationError('Doz atlanamadı. Lütfen tekrar deneyin.'));
+    }
+  }
 }

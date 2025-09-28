@@ -10,6 +10,7 @@ List<RouteBase> get $appRoutes => [
       $homeRoute,
       $medicationFormRoute,
       $medicationEditRoute,
+      $doseIntakeRoute,
       $missedDosesRoute,
     ];
 
@@ -81,6 +82,44 @@ extension $MedicationEditRouteExtension on MedicationEditRoute {
       context.pushReplacement(location);
 
   void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $doseIntakeRoute => GoRouteData.$route(
+      path: '/dose/:id',
+      factory: $DoseIntakeRouteExtension._fromState,
+    );
+
+extension $DoseIntakeRouteExtension on DoseIntakeRoute {
+  static DoseIntakeRoute _fromState(GoRouterState state) => DoseIntakeRoute(
+        id: state.pathParameters['id']!,
+        occurrenceAt: _$convertMapValue(
+            'occurrence-at', state.uri.queryParameters, DateTime.tryParse),
+      );
+
+  String get location => GoRouteData.$location(
+        '/dose/${Uri.encodeComponent(id)}',
+        queryParams: {
+          if (occurrenceAt != null) 'occurrence-at': occurrenceAt!.toString(),
+        },
+      );
+
+  void go(BuildContext context) => context.go(location);
+
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  void replace(BuildContext context) => context.replace(location);
+}
+
+T? _$convertMapValue<T>(
+  String key,
+  Map<String, String> map,
+  T? Function(String) converter,
+) {
+  final value = map[key];
+  return value == null ? null : converter(value);
 }
 
 RouteBase get $missedDosesRoute => GoRouteData.$route(

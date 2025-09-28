@@ -18,3 +18,15 @@ class UpdateMedication extends MedicationEvent {
   final Medication medication;
   UpdateMedication(this.medication);
 }
+
+class ConsumeMedicationDose extends MedicationEvent {
+  final String id;
+  final DateTime? occurrenceAt;
+  ConsumeMedicationDose(this.id, {this.occurrenceAt});
+}
+
+class SkipMedicationDose extends MedicationEvent {
+  final String id;
+  final DateTime? occurrenceAt;
+  SkipMedicationDose(this.id, {this.occurrenceAt});
+}
