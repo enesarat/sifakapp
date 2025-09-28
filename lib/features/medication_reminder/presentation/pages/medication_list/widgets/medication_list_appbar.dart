@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
-import '../../missed/missed_doses_page.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sifakapp/core/navigation/app_routes.dart';
 
 class MedicationListAppBar extends StatelessWidget implements PreferredSizeWidget {
   const MedicationListAppBar({super.key});
@@ -16,13 +17,14 @@ class MedicationListAppBar extends StatelessWidget implements PreferredSizeWidge
           tooltip: 'Kaçırılan dozlar',
           icon: const Icon(Icons.notification_important_outlined),
           onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MissedDosesPage()),
-            );
+            context.push(const MissedDosesRoute().location);
           },
         ),
       ],
     );
   }
 }
+
+
+
 
