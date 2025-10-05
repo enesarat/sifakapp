@@ -10,4 +10,6 @@ abstract class MedicationCatalogRepository {
   Future<MedicationCategory?> getCategoryByKey(
     MedicationCategoryKey key,
   );
+
+  Future<List<MedicationCategory>> getAllCategories();
 }

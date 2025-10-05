@@ -1,5 +1,4 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:sifakapp/features/medication_reminder/application/notifications/notification_scheduler.dart';
@@ -11,6 +10,7 @@ import 'package:sifakapp/features/medication_reminder/data/repositories/medicati
 import 'package:sifakapp/features/medication_reminder/domain/repositories/medication_catalog_repository.dart';
 import 'package:sifakapp/features/medication_reminder/domain/repositories/medication_plan_repository.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/get_medication_category_by_key.dart';
+import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/get_all_medication_categories.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/search_medication_catalog.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/plan/apply_plan_for_medication.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/plan/cancel_plan_for_medication.dart';
@@ -90,6 +90,8 @@ void setupLocator(
       () => SearchMedicationCatalog(sl()));
   sl.registerLazySingleton<GetMedicationCategoryByKey>(
       () => GetMedicationCategoryByKey(sl()));
+  sl.registerLazySingleton<GetAllMedicationCategories>(
+      () => GetAllMedicationCategories(sl()));
 
   sl.registerLazySingleton<ApplyPlanForMedication>(
       () => ApplyPlanForMedication(sl(), sl()));

@@ -6,7 +6,7 @@ import 'package:sifakapp/core/validations/validator.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication_catalog_entry.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication_category.dart';
-import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/get_medication_category_by_key.dart';
+import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/get_all_medication_categories.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_event.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_state.dart';
@@ -36,15 +36,14 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
   // Controllers
   late final TextEditingController _nameController;
   late final TextEditingController _diagnosisController;
-  late final TextEditingController _typeController;
   late final TextEditingController _pillsController;
 
-  late final GetMedicationCategoryByKey _getMedicationCategoryByKey =
-      sl<GetMedicationCategoryByKey>();
+  late final GetAllMedicationCategories _getAllMedicationCategories =
+      sl<GetAllMedicationCategories>();
 
   final _formKey = GlobalKey<FormState>();
 
-  // ---- Entity ile uyumlu alanlar ----
+  // Entity-backed fields
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
   DateTime? _expirationDate;
@@ -55,46 +54,24 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
   ScheduleMode _dayScheduleMode = ScheduleMode.manual;
 
   bool _isEveryDay = true;
-  List<int> _usageDays = []; // manuel günler (1..7)
+  List<int> _usageDays = []; // manual selection (1..7)
 
-  // Otomatik gün planı (haftada kaç gün & önizleme)
+  // Automatic day planner (weekly count & preview)
   int _autoDaysPerWeek = 3; // 0..6
-  List<int> _autoPreviewDays = []; // 1..7 (chip önizlemesi)
+  List<int> _autoPreviewDays = []; // 1..7 (chip preview)
 
-  // Saatler
+  // Times
   List<TimeOfDay> _manualTimes = [];
 
-  // Yemek bilgisi
+  // Meal info
   bool _isAfterMeal = true;
   int _hoursBeforeOrAfterMeal = 0;
 
-  void _onMedicationNameEdited() {}
-
-  void _onMedicationSuggestionSelected(MedicationCatalogEntry entry) {
-    _applyCatalogSuggestion(entry);
-  }
-
-  Future<void> _applyCatalogSuggestion(MedicationCatalogEntry entry) async {
-    if (entry.categoryKey == MedicationCategoryKey.oralCapsule &&
-        entry.pieces != null) {
-      _pillsController.text = entry.pieces.toString();
-    }
-
-    if (entry.categoryKey != null) {
-      try {
-        final category = await _getMedicationCategoryByKey(entry.categoryKey!);
-        if (!mounted) return;
-        if (category != null) {
-          _typeController.text = category.label;
-        } else {
-          _typeController.text = entry.categoryKey!.value;
-        }
-      } catch (_) {
-        if (!mounted) return;
-        _typeController.text = entry.categoryKey!.value;
-      }
-    }
-  }
+  // Catalog categories
+  List<MedicationCategory> _categories = [];
+  bool _isCategoryLoading = true;
+  MedicationCategoryKey? _selectedCategoryKey;
+  String? _pendingTypeValue;
 
   Medication? _med;
   bool _ready = false;
@@ -104,49 +81,134 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     super.initState();
     _nameController = TextEditingController();
     _diagnosisController = TextEditingController();
-    _typeController = TextEditingController();
     _pillsController = TextEditingController();
 
-    // 1) extra ile gelen
     _med = widget.initialMedication;
     if (_med != null) {
       _hydrateControllers(_med!);
       _ready = true;
-      setState(() {});
-      return;
     }
 
-    // 2) mevcut listedeki kayıttan
-    final current = context.read<MedicationBloc>().state;
-    if (current is MedicationLoaded) {
-      final found =
-          current.medications.where((m) => m.id == widget.id).toList();
-      if (found.isNotEmpty) {
-        _med = found.first;
-        _hydrateControllers(_med!);
-        _ready = true;
-        setState(() {});
-        return;
+    _loadCategories();
+
+    if (_med == null) {
+      final current = context.read<MedicationBloc>().state;
+      if (current is MedicationLoaded) {
+        final found =
+            current.medications.where((m) => m.id == widget.id).toList();
+        if (found.isNotEmpty) {
+          _med = found.first;
+          _hydrateControllers(_med!);
+          _ready = true;
+        }
+      } else {
+        context.read<MedicationBloc>().add(FetchAllMedications());
       }
     }
-
-    // 3) deep-link/refresh
-    context.read<MedicationBloc>().add(FetchAllMedications());
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _diagnosisController.dispose();
-    _typeController.dispose();
     _pillsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _getAllMedicationCategories();
+      if (!mounted) return;
+      setState(() {
+        _categories = categories;
+        _isCategoryLoading = false;
+        _syncCategoryFromPendingValue();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _categories = const [];
+        _isCategoryLoading = false;
+      });
+    }
+  }
+
+  void _syncCategoryFromPendingValue() {
+    if (_pendingTypeValue == null || _pendingTypeValue!.isEmpty) {
+      return;
+    }
+    final inferred = _deriveCategoryKey(_pendingTypeValue!);
+    if (inferred != null && inferred != _selectedCategoryKey) {
+      _selectedCategoryKey = inferred;
+    }
+  }
+
+  MedicationCategoryKey? _deriveCategoryKey(String value) {
+    final keyMatch = MedicationCategoryKey.fromValue(value);
+    if (keyMatch != null) {
+      return keyMatch;
+    }
+    for (final category in _categories) {
+      if (category.label.toLowerCase() == value.toLowerCase()) {
+        return category.key;
+      }
+    }
+    return null;
+  }
+
+  MedicationCategory? _categoryForKey(MedicationCategoryKey? key) {
+    if (key == null) return null;
+    for (final category in _categories) {
+      if (category.key == key) {
+        return category;
+      }
+    }
+    return null;
+  }
+
+  bool get _isCapsuleSelected =>
+      _selectedCategoryKey == MedicationCategoryKey.oralCapsule;
+
+  void _onMedicationNameEdited() {
+    if (_selectedCategoryKey != null || _pendingTypeValue != null) {
+      setState(() {
+        _selectedCategoryKey = null;
+        _pendingTypeValue = null;
+      });
+    }
+  }
+
+  void _onMedicationSuggestionSelected(MedicationCatalogEntry entry) {
+    setState(() {
+      if (entry.categoryKey == MedicationCategoryKey.oralCapsule &&
+          entry.pieces != null) {
+        _pillsController.text = entry.pieces.toString();
+      }
+      _selectedCategoryKey = entry.categoryKey;
+      final category = _categoryForKey(entry.categoryKey);
+      _pendingTypeValue = entry.categoryKey == null
+          ? null
+          : (category?.label ?? entry.categoryKey!.value);
+    });
+  }
+
+  String _resolveTypeLabel() {
+    final category = _categoryForKey(_selectedCategoryKey);
+    if (category != null) {
+      return category.label;
+    }
+    if (_pendingTypeValue != null) {
+      return _pendingTypeValue!;
+    }
+    if (_selectedCategoryKey != null) {
+      return _selectedCategoryKey!.value;
+    }
+    return '';
   }
 
   void _hydrateControllers(Medication med) {
     _nameController.text = med.name;
     _diagnosisController.text = med.diagnosis;
-    _typeController.text = med.type;
     _pillsController.text = med.totalPills.toString();
 
     _startDate = med.startDate;
@@ -163,7 +225,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     _usageDays = List<int>.from(med.usageDays ?? const []);
     _autoDaysPerWeek =
         (!_isEveryDay && _dayScheduleMode == ScheduleMode.automatic)
-            ? (_usageDays.length.clamp(0, 6))
+            ? _usageDays.length.clamp(0, 6)
             : 3;
 
     _manualTimes = List<TimeOfDay>.from(med.reminderTimes ?? const []);
@@ -176,9 +238,12 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
       autoDaysPerWeek: _autoDaysPerWeek,
       startWeekday: _startDate.weekday,
     );
+
+    _pendingTypeValue = med.type;
+    _selectedCategoryKey = _deriveCategoryKey(med.type);
   }
 
-  // ---- Pickers (UI tarafında kalmalı) ----
+  // ---- Pickers (UI side) ----
   Future<void> _pickStartDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -222,12 +287,9 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
   }
 
   Future<void> _pickTime(int index) async {
-    final initial = (_manualTimes.length > index)
-        ? _manualTimes[index]
-        : TimeOfDay(hour: 8 + index * 3, minute: 0);
     final picked = await showTimePicker(
       context: context,
-      initialTime: initial,
+      initialTime: TimeOfDay(hour: 8 + index * 3, minute: 0),
     );
     if (picked != null) {
       setState(() {
@@ -249,7 +311,6 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
       return;
     }
 
-    // Saat planı manuel ise saat sayısı/doğrulama
     if (_timeScheduleMode == ScheduleMode.manual) {
       final manualTimeError = Validator.validateManualTime(
         _manualTimes,
@@ -257,14 +318,12 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
         true,
       );
       if (manualTimeError != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(manualTimeError)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(manualTimeError)));
         return;
       }
     }
 
-    // --- Gün doğrulaması (merkezileştirildi) ---
     final daysError = Validator.validateUsageDays(
       isEveryDay: _isEveryDay,
       isManualDayMode: _dayScheduleMode == ScheduleMode.manual,
@@ -277,7 +336,6 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
       return;
     }
 
-    // Kaydetmek için usageDays hazırla
     List<int>? usageDaysForSave;
     if (_isEveryDay) {
       usageDaysForSave = null;
@@ -291,17 +349,20 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     }
 
     final totalPills = int.tryParse(_pillsController.text) ?? 0;
-    final remainingPills = _med?.remainingPills ?? totalPills;
+    final remainingPills = totalPills;
 
     final reminderTimes = _timeScheduleMode == ScheduleMode.manual
         ? _manualTimes
         : generateEvenlySpacedTimes(_dailyDosage);
 
-    final updated = Medication(
-      id: _med?.id ?? widget.id,
+    if (_med == null) {
+      return;
+    }
+
+    final updated = _med!.copyWith(
       name: _nameController.text.trim(),
       diagnosis: _diagnosisController.text.trim(),
-      type: _typeController.text.trim(),
+      type: _resolveTypeLabel(),
       startDate: _startDate,
       endDate: _endDate,
       expirationDate: _expirationDate,
@@ -323,6 +384,9 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
 
   @override
   Widget build(BuildContext context) {
+    final totalPillsLabel =
+        _isCapsuleSelected ? 'Toplam Hap Sayısı' : 'Toplam Doz Sayısı';
+
     return BlocListener<MedicationBloc, MedicationState>(
       listenWhen: (prev, curr) =>
           curr is MedicationUpdated ||
@@ -336,6 +400,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
             _med = found.first;
             _hydrateControllers(_med!);
             _ready = true;
+            _syncCategoryFromPendingValue();
             setState(() {});
           }
         } else if (state is MedicationUpdated) {
@@ -370,7 +435,20 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                         controller: _diagnosisController,
                         validator: Validator.validateDiagnosis,
                       ),
-                      MedicationTypeField(controller: _typeController),
+                      MedicationTypeField(
+                        categories: _categories,
+                        selectedKey: _selectedCategoryKey,
+                        isLoading: _isCategoryLoading,
+                        onChanged: (key) {
+                          setState(() {
+                            _selectedCategoryKey = key;
+                            final category = _categoryForKey(key);
+                            _pendingTypeValue = category?.label ??
+                                key?.value ??
+                                _pendingTypeValue;
+                          });
+                        },
+                      ),
 
                       const SizedBox(height: 8),
                       MedicationStartDateField(
@@ -391,6 +469,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                       MedicationPillsField(
                         controller: _pillsController,
                         validator: Validator.validatePills,
+                        labelText: totalPillsLabel,
                       ),
                       MedicationDailyDosageSlider(
                         dailyDosage: _dailyDosage,
@@ -399,7 +478,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                       ),
 
                       const SizedBox(height: 8),
-                      // Saat planÃ„Â±
+                      // Time schedule
                       ScheduleModeSelector(
                         title: 'Saat Planı',
                         value: _timeScheduleMode,
@@ -447,7 +526,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                               _dayScheduleMode = v;
                               if (v == ScheduleMode.automatic) {
                                 _autoDaysPerWeek =
-                                    (_usageDays.length).clamp(0, 6);
+                                    _usageDays.length.clamp(0, 6);
                                 _autoPreviewDays = previewAutomaticUsageDays(
                                   isEveryDay: _isEveryDay,
                                   isAutomaticDayMode: true,
@@ -467,7 +546,6 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                             onChanged: (days) {
                               setState(() {
                                 _usageDays = days;
-                                // 7 gün seçildiyse "Her gün"e geç
                                 if (_usageDays.length >= 7) {
                                   _isEveryDay = true;
                                   _usageDays = [];
@@ -481,7 +559,6 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                                 }
                               });
                             },
-                            // Inline validator (manuelde en az 1 gün, 1..7, tekrarsızlık)
                             validator: (days) => Validator.validateUsageDays(
                               isEveryDay: _isEveryDay,
                               isManualDayMode: true,

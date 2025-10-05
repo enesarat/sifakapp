@@ -48,6 +48,12 @@ class MedicationCatalogRepositoryImpl implements MedicationCatalogRepository {
     return categories[key];
   }
 
+  @override
+  Future<List<MedicationCategory>> getAllCategories() async {
+    final categories = await _loadCategories();
+    return List<MedicationCategory>.unmodifiable(categories.values);
+  }
+
   Future<List<MedicationCatalogEntry>> _loadEntries() async {
     if (_entriesCache != null) {
       return _entriesCache!;
