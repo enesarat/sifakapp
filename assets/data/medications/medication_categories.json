@@ -1,0 +1,9 @@
+[
+    { "id": 1, "key":"oral_capsule", "label": "Ağızdan Kapsül (Tablet)", "keywords": ["kapsül", "kapsul", "tablet", "film tablet", "draje"] },
+    { "id": 2, "key":"topical_semisolid", "label": "Krem/Jel", "keywords": ["pomad", "merhem", "krem", "jel"] },
+    { "id": 3, "key":"parenteral", "label": "Enjeksiyonluk (Ampül/Flakon)", "keywords": ["ampül", "ampul", "flakon"] },
+    { "id": 4, "key":"oral_syrup", "label": "Ağızdan Şurup", "keywords": ["şurup", "surup", "sirup"] },
+    { "id": 5, "key":"oral_suspension", "label": "Ağızdan Süspansiyon", "keywords": ["süspansiyon", "suspansiyon"] },
+    { "id": 6, "key":"oral_drops", "label": "Damla", "keywords": ["damla"] },
+    { "id": 7, "key":"oral_solution", "label": "Çözelti/Solüsyon", "keywords": ["çözelti", "cozelti", "solüsyon", "solution"] }
+]
