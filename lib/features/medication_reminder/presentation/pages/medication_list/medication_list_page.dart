@@ -8,10 +8,12 @@ class MedicationListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      appBar: MedicationListAppBar(),
-      body: MedicationListBody(),
-      floatingActionButton: AddMedicationFab(),
+    final cs = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: cs.surface,
+      appBar: const MedicationListAppBar(),
+      body: const MedicationListBody(),
+      floatingActionButton: const AddMedicationFab(),
     );
   }
 }

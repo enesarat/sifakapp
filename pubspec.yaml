@@ -1,4 +1,4 @@
-name: sifakapp
+﻿name: sifakapp
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -28,15 +28,17 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
+
 dependencies:
   flutter:
     sdk: flutter
+  google_fonts: ^6.2.1
   get_it: ^7.7.0
   flutter_bloc: ^8.1.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   path_provider: ^2.0.15
-  go_router: 13.2.0   # 14.x da olur; 15.2.0 ile GoRouteData’da .push/.go gelir
+  go_router: 13.2.0   # 14.x da olur; 15.2.0 ile GoRouteDataâ€™da .push/.go gelir
   flutter_local_notifications: ^17.2.1
   timezone: ^0.9.3
   flutter_timezone: ^4.1.1
@@ -53,8 +55,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  build_runner: 2.5.4       # 👈 build ^2.x ile uyumlu son hat
-  hive_generator: 2.0.1     # 👈 source_gen ^1 ve build ^2 ile çalışır
+  build_runner: 2.5.4       # ğŸ‘ˆ build ^2.x ile uyumlu son hat
+  hive_generator: 2.0.1     # ğŸ‘ˆ source_gen ^1 ve build ^2 ile Ã§alÄ±ÅŸÄ±r
   go_router_builder: 2.8.2
   
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -110,3 +112,5 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+

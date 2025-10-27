@@ -9,6 +9,7 @@ import 'confirm_delete_medication_dialog.dart';
 
 // utils
 import '../../../utils/medication_formatters.dart';
+import '../../../utils/time_utils.dart';
 
 class MedicationListItem extends StatelessWidget {
   const MedicationListItem({super.key, required this.med});
@@ -17,89 +18,154 @@ class MedicationListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final start = formatDateYmd(med.startDate);
-    final end   = formatDateYmd(med.endDate);
-    final exp   = formatDateYmd(med.expirationDate);
-    final usageDaysLabel = med.isEveryDay ? 'Her gün' : formatUsageDays(med.usageDays);
-    final meal = formatMealFromMedication(med);
+    final end = formatDateYmd(med.endDate);
+    final exp = formatDateYmd(med.expirationDate);
+    final cs = Theme.of(context).colorScheme;
+
+    final remaining = med.remainingPills;
+    final total = med.totalPills;
+    final double pct = total > 0 ? ((remaining / total).clamp(0.0, 1.0) as double) : 0.0;
+
+    String _fmt(TimeOfDay t) =>
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    TimeOfDay _nextDose() {
+      final times = (med.timeScheduleMode == ScheduleMode.manual &&
+              med.reminderTimes != null &&
+              med.reminderTimes!.isNotEmpty)
+          ? List<TimeOfDay>.from(med.reminderTimes!)
+          : generateEvenlySpacedTimes(med.dailyDosage);
+      times.sort((a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute));
+      final now = TimeOfDay.now();
+      final nowM = now.hour * 60 + now.minute;
+      for (final t in times) {
+        final m = t.hour * 60 + t.minute;
+        if (m > nowM) return t;
+      }
+      return times.first;
+    }
 
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 3,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => showMedicationDetailsDialog(context, med),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      med.name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Başlangıç: $start'
-                      '${end != '—' ? '   •   Bitiş: $end' : ''}'
-                      '${exp != '—' ? '   •   SKT: $exp' : ''}',
-                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Chip(label: Text('Doz: ${med.dailyDosage}/gün')),
-                        Chip(label: Text('Kalan: ${med.remainingPills}/${med.totalPills}')),
-                        Chip(label: Text('Saat: ${scheduleModeLabel(med.timeScheduleMode)}')),
-                        Chip(label: Text('Gün: ${scheduleModeLabel(med.dayScheduleMode)} • $usageDaysLabel')),
-                        if (meal != null) Chip(label: Text(meal)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    tooltip: 'Detay',
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: () => showMedicationDetailsDialog(context, med),
+                  Text(
+                    'Başlangıç: ' + start + (end != '—' ? ', Bitiş: ' + end : '') + (exp != '—' ? ', SKT: ' + exp : ''),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: cs.primary.withOpacity(0.85)),
                   ),
-                  IconButton(
-                    tooltip: 'Sil',
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () async {
-                      final confirmed = await showConfirmDeleteMedicationDialog(
-                        context,
-                        med: med,
-                      );
-                      if (confirmed == true) {
-                        context.read<MedicationBloc>().add(RemoveMedication(med.id));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('İlaç siliniyor...'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    },
+                  const SizedBox(height: 4),
+                  Text(
+                    med.name,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${med.totalPills} adet, ${med.dailyDosage} kez/gün',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: cs.primary.withOpacity(0.85)),
+                      ),
+                      GestureDetector(
+                        onTap: () => showMedicationDetailsDialog(context, med),
+                        child: Builder(builder: (ctx) {
+                          final baseSize = Theme.of(ctx).textTheme.titleSmall?.fontSize ?? 14;
+                          const labelColor = Color(0xFF6F9B8F); // gri-yeşil
+                          const timeColor = Color(0xFF2BAA7F);  // daha belirgin yeşil
+                          return RichText(
+                            text: TextSpan(
+                              style: Theme.of(ctx).textTheme.titleSmall,
+                              children: [
+                                TextSpan(
+                                  text: 'Gelecek doz: ',
+                                  style: TextStyle(
+                                    color: labelColor,
+                                    fontSize: baseSize - 1,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: _fmt(_nextDose()),
+                                  style: TextStyle(
+                                    color: timeColor,
+                                    fontSize: baseSize + 2,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: cs.outlineVariant)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(_remainingLabel(med),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w500)),
+                      Text('$remaining/$total',
+                          style: Theme.of(context).textTheme.bodySmall),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: SizedBox(
+                      height: 8,
+                      child: Stack(
+                        children: [
+                          Container(color: cs.surfaceVariant.withOpacity(0.7)),
+                          FractionallySizedBox(
+                            widthFactor: pct,
+                            child: Container(color: cs.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+String _remainingLabel(Medication med) {
+  final t = (med.type).toLowerCase();
+  const pillHints = ['kaps', 'tablet', 'hap', 'capsule', 'pill'];
+  final isPill = pillHints.any((h) => t.contains(h));
+  return isPill ? 'Kalan hap' : 'Kalan doz';
 }

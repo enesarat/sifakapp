@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -146,16 +147,47 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Ilac Hatirlatici',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
+      title: 'İlaç Hatırlatıcı',
+      theme: _buildTheme(Brightness.light),
+      darkTheme: _buildTheme(Brightness.dark),
       routerConfig: _router,
     );
   }
 }
 
 
+
+
+
+
+ThemeData _buildTheme(Brightness brightness) {
+  const primary = Color(0xFF13B6EC);
+  final base = ThemeData(brightness: brightness, useMaterial3: true);
+  final scheme = ColorScheme.fromSeed(
+    seedColor: primary,
+    brightness: brightness,
+  );
+  final schemeFixed = scheme.copyWith(primary: primary);
+  return base.copyWith(
+    colorScheme: schemeFixed,
+    primaryColor: primary,
+    textTheme: GoogleFonts.manropeTextTheme(base.textTheme),
+    appBarTheme: base.appBarTheme.copyWith(
+      backgroundColor: scheme.surface,
+      foregroundColor: scheme.onSurface,
+      elevation: 0,
+    ),
+    floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(
+      backgroundColor: primary,
+      foregroundColor: Colors.white,
+    ),
+    cardTheme: base.cardTheme.copyWith(
+      color: brightness == Brightness.light ? Colors.white : const Color(0xFF2D2F34),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+    ),
+  );
+}
 
 
 

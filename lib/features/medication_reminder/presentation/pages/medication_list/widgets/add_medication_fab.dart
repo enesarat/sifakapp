@@ -25,6 +25,9 @@ class AddMedicationFab extends StatelessWidget {
           context.read<MedicationBloc>().add(FetchAllMedications());
         }
       },
+      shape: const CircleBorder(),
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      foregroundColor: Colors.white,
       child: const Icon(Icons.add),
     );
   }
