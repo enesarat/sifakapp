@@ -1,6 +1,6 @@
-import "dart:async";
+import 'dart:async';
 
-import "package:flutter/material.dart";
+import 'package:flutter/material.dart';
 
 import 'package:sifakapp/core/service_locator.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication_catalog_entry.dart';
@@ -155,7 +155,7 @@ class _MedicationNameFieldState extends State<MedicationNameField> {
   }
 }
 
-class _SuggestionPanel extends StatelessWidget {
+class _SuggestionPanel extends StatefulWidget {
   const _SuggestionPanel({
     required this.isVisible,
     required this.isLoading,
@@ -171,16 +171,64 @@ class _SuggestionPanel extends StatelessWidget {
   final ValueChanged<MedicationCatalogEntry> onSuggestionTap;
 
   @override
+  State<_SuggestionPanel> createState() => _SuggestionPanelState();
+}
+
+class _SuggestionPanelState extends State<_SuggestionPanel>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+      reverseDuration: const Duration(milliseconds: 150),
+    );
+    final curve = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _fade = curve;
+    _slide = Tween<Offset>(begin: const Offset(0, -0.02), end: Offset.zero)
+        .animate(curve);
+    if (widget.isVisible) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _SuggestionPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isVisible && widget.isVisible) {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (!isVisible) {
+    if (!widget.isVisible) {
       return const SizedBox.shrink();
     }
 
     final theme = Theme.of(context);
-    final borderColor = theme.dividerColor.withOpacity(0.6);
+    final cs = theme.colorScheme;
+    final borderColor = theme.brightness == Brightness.light
+        ? Colors.black12
+        : cs.outlineVariant;
 
     Widget content;
-    if (isLoading) {
+    if (widget.isLoading) {
       content = const Padding(
         padding: EdgeInsets.all(16),
         child: Center(
@@ -191,22 +239,48 @@ class _SuggestionPanel extends StatelessWidget {
           ),
         ),
       );
-    } else if (hasResults) {
+    } else if (widget.hasResults) {
       content = ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 240),
+        constraints: const BoxConstraints(maxHeight: 300),
         child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
           shrinkWrap: true,
-          itemCount: suggestions.length,
-          separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+          itemCount: widget.suggestions.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 6),
           itemBuilder: (context, index) {
-            final entry = suggestions[index];
-            return ListTile(
-              dense: true,
-              title: Text(entry.name),
-              subtitle: entry.barcode != null && entry.barcode!.isNotEmpty
-                  ? Text('Barkod: ${entry.barcode}')
-                  : null,
-              onTap: () => onSuggestionTap(entry),
+            final entry = widget.suggestions[index];
+            return InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => widget.onSuggestionTap(entry),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        entry.name,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         ),
@@ -218,21 +292,29 @@ class _SuggestionPanel extends StatelessWidget {
       );
     }
 
-    return Container(
-      margin: const EdgeInsets.only(top: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: borderColor),
-        boxShadow: const [
-          BoxShadow(
-            blurRadius: 8,
-            offset: Offset(0, 2),
-            color: Color(0x1F000000),
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(
+        position: _slide,
+        child: Container(
+          margin: const EdgeInsets.only(top: 4),
+          decoration: BoxDecoration(
+            color: theme.brightness == Brightness.light
+                ? Colors.white
+                : cs.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
+          child: content,
+        ),
       ),
-      child: content,
     );
   }
 }
