@@ -1,9 +1,10 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:hive/hive.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../../features/medication_reminder/application/plan/plan_builder.dart';
@@ -41,7 +42,7 @@ void callbackDispatcher() {
       final meds = medsModels.map(MedicationMapper.toEntity).toList();
 
       final now = DateTime.now();
-      final from = now.subtract(const Duration(hours: 5));
+      final from = now.subtract(const Duration(hours: 24));
 
       var missedCount = 0;
       for (final med in meds) {
@@ -54,8 +55,11 @@ void callbackDispatcher() {
         missedCount += missed.length;
       }
 
-      if (missedCount > 0) {
-        final body = 'Cihazınız kapalıyken zamanı atlanmış dozlarınız bulunmaktadır!\nSon 5 saatte $missedCount doz kaçırıldı';
+      // Snooze baseline: notify only if count increased since last baseline
+      final prefs = await Hive.openBox('app_prefs');
+      final baseline = (prefs.get('missed_baseline') as int?) ?? 0;
+      if (missedCount > 0 && missedCount > baseline) {
+        final body = 'Kaçırılan dozlar var.\nSon 24 saatte $missedCount doz kaçırıldı';
         await AwesomeNotifications().createNotification(
           content: NotificationContent(
             id: 910001,
@@ -66,9 +70,12 @@ void callbackDispatcher() {
             payload: const {'type': 'missed_dose'},
           ),
         );
+        await prefs.put('missed_baseline', missedCount);
+        await prefs.put('missed_baseline_set_at', DateTime.now().millisecondsSinceEpoch);
       }
     } catch (_) {}
 
     return Future.value(true);
   });
 }
+

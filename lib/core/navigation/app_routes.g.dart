@@ -9,9 +9,12 @@ part of 'app_routes.dart';
 List<RouteBase> get $appRoutes => [
       $homeRoute,
       $medicationFormRoute,
+      $addCatalogEntryConfirmRoute,
       $medicationEditRoute,
       $doseIntakeRoute,
       $missedDosesRoute,
+      $medicationDetailsDialogRoute,
+      $confirmDeleteMedicationRoute,
     ];
 
 RouteBase get $homeRoute => GoRouteData.$route(
@@ -47,6 +50,38 @@ extension $MedicationFormRouteExtension on MedicationFormRoute {
 
   String get location => GoRouteData.$location(
         '/medications/new',
+      );
+
+  void go(BuildContext context) => context.go(location);
+
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $addCatalogEntryConfirmRoute => GoRouteData.$route(
+      path: '/catalog/add-confirmation',
+      factory: $AddCatalogEntryConfirmRouteExtension._fromState,
+    );
+
+extension $AddCatalogEntryConfirmRouteExtension on AddCatalogEntryConfirmRoute {
+  static AddCatalogEntryConfirmRoute _fromState(GoRouterState state) =>
+      AddCatalogEntryConfirmRoute(
+        name: state.uri.queryParameters['name']!,
+        totalPills: int.parse(state.uri.queryParameters['total-pills']!)!,
+        typeLabel: state.uri.queryParameters['type-label'],
+      );
+
+  String get location => GoRouteData.$location(
+        '/catalog/add-confirmation',
+        queryParams: {
+          'name': name,
+          'total-pills': totalPills.toString(),
+          if (typeLabel != null) 'type-label': typeLabel,
+        },
       );
 
   void go(BuildContext context) => context.go(location);
@@ -133,6 +168,58 @@ extension $MissedDosesRouteExtension on MissedDosesRoute {
 
   String get location => GoRouteData.$location(
         '/missed',
+      );
+
+  void go(BuildContext context) => context.go(location);
+
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $medicationDetailsDialogRoute => GoRouteData.$route(
+      path: '/medications/:id/details',
+      factory: $MedicationDetailsDialogRouteExtension._fromState,
+    );
+
+extension $MedicationDetailsDialogRouteExtension
+    on MedicationDetailsDialogRoute {
+  static MedicationDetailsDialogRoute _fromState(GoRouterState state) =>
+      MedicationDetailsDialogRoute(
+        id: state.pathParameters['id']!,
+      );
+
+  String get location => GoRouteData.$location(
+        '/medications/${Uri.encodeComponent(id)}/details',
+      );
+
+  void go(BuildContext context) => context.go(location);
+
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $confirmDeleteMedicationRoute => GoRouteData.$route(
+      path: '/medications/:id/confirm-delete',
+      factory: $ConfirmDeleteMedicationRouteExtension._fromState,
+    );
+
+extension $ConfirmDeleteMedicationRouteExtension
+    on ConfirmDeleteMedicationRoute {
+  static ConfirmDeleteMedicationRoute _fromState(GoRouterState state) =>
+      ConfirmDeleteMedicationRoute(
+        id: state.pathParameters['id']!,
+      );
+
+  String get location => GoRouteData.$location(
+        '/medications/${Uri.encodeComponent(id)}/confirm-delete',
       );
 
   void go(BuildContext context) => context.go(location);

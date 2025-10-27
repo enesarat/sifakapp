@@ -72,8 +72,9 @@ class MedicationPlan {
         weeklySlots.isNotEmpty &&
         dailySlots.isEmpty &&
         oneOffs.isEmpty;
+    // one-off horizon kullanımlarında boş liste dönebileceği için
+    // RepeatPattern.none için boş oneOffs da kabul edilir.
     final okNone = pattern == RepeatPattern.none &&
-        oneOffs.isNotEmpty &&
         dailySlots.isEmpty &&
         weeklySlots.isEmpty;
 

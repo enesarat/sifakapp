@@ -24,14 +24,16 @@ class HiveConfig {
     return (medsBox, plansBox);
   }
 
-  // DEV amaçlı güvenli açıcı
+  // Güvenli açıcı: PROD ortamında veri silme yok; hata fırlatılır
   static Future<Box<T>> _openBoxSafe<T>(String name) async {
     try {
       return await Hive.openBox<T>(name);
-    } catch (_) {
-      // TODO: prod'da migration stratejisi ekle
-      await Hive.deleteBoxFromDisk(name);
-      return await Hive.openBox<T>(name);
+    } catch (e) {
+      // Daha önce burada kutu diski siliniyordu. Bu veri kaybına yol açıyordu.
+      // Prod’da asla sessizce silme yapmayalım; hatayı yukarı taşıyalım.
+      // Gerekirse migration/compact gibi stratejiler eklenir.
+      // ignore: only_throw_errors
+      throw e;
     }
   }
 }

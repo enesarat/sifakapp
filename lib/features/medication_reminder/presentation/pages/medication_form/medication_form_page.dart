@@ -8,6 +8,10 @@ import 'package:sifakapp/features/medication_reminder/domain/entities/medication
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication_catalog_entry.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication_category.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/get_all_medication_categories.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/pages/catalog/models/catalog_add_confirmation.dart';
+import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/check_medication_catalog_entry_exists.dart';
+import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/add_custom_medication_catalog_entry.dart';
+import 'package:sifakapp/core/navigation/app_routes.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_event.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_state.dart';
@@ -36,6 +40,11 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
 
   late final GetAllMedicationCategories _getAllMedicationCategories =
       sl<GetAllMedicationCategories>();
+  late final CheckMedicationCatalogEntryExists
+      _checkMedicationCatalogEntryExists =
+      sl<CheckMedicationCatalogEntryExists>();
+  late final AddCustomMedicationCatalogEntry _addCustomMedicationCatalogEntry =
+      sl<AddCustomMedicationCatalogEntry>();
 
   // Dates
   DateTime _startDate = DateTime.now();
@@ -102,6 +111,51 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       }
     }
     return null;
+  }
+
+  Future<bool> _ensureCatalogEntry(String name, int totalPills) async {
+    try {
+      final exists = await _checkMedicationCatalogEntryExists(name);
+      if (exists) {
+        return true;
+      }
+    } catch (_) {
+      return true;
+    }
+
+    final categoryLabel = _categoryForKey(_selectedCategoryKey)?.label;
+    final decision = await AddCatalogEntryConfirmRoute(
+      name: name,
+      totalPills: totalPills,
+      typeLabel: categoryLabel,
+    ).push<CatalogAddDecision>(context);
+
+    if (!mounted) {
+      return false;
+    }
+    if (decision == null) {
+      return false;
+    }
+    if (decision == CatalogAddDecision.add) {
+      try {
+        await _addCustomMedicationCatalogEntry(
+          AddCustomMedicationCatalogEntryParams(
+            name: name,
+            categoryKey: _selectedCategoryKey,
+            pieces: totalPills > 0 ? totalPills : null,
+          ),
+        );
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('İlaç kataloğu güncellenemedi.'),
+            ),
+          );
+        }
+      }
+    }
+    return true;
   }
 
   void _onMedicationNameEdited() {
@@ -196,7 +250,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
     return '';
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lütfen formu eksiksiz doldurun!')),
@@ -204,7 +258,6 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       return;
     }
 
-    // Manual time validation
     if (_timeScheduleMode == ScheduleMode.manual) {
       final manualTimeError = Validator.validateManualTime(
         _manualTimes,
@@ -218,7 +271,6 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       }
     }
 
-    // Usage days validation
     final daysError = Validator.validateUsageDays(
       isEveryDay: _isEveryDay,
       isManualDayMode: _dayScheduleMode == ScheduleMode.manual,
@@ -231,7 +283,6 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       return;
     }
 
-    // Prepare usage days for save
     List<int>? usageDaysForSave;
     if (_isEveryDay) {
       usageDaysForSave = null;
@@ -245,7 +296,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
     }
 
     final totalPills = int.tryParse(_pillsController.text) ?? 0;
-    final remainingPills = totalPills; // initial equals total
+    final remainingPills = totalPills;
 
     final reminderTimes = _timeScheduleMode == ScheduleMode.manual
         ? _manualTimes
@@ -271,6 +322,18 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       hoursBeforeOrAfterMeal: _hoursBeforeOrAfterMeal,
       isAfterMeal: _isAfterMeal,
     );
+
+    final canProceed = await _ensureCatalogEntry(
+      medication.name,
+      totalPills,
+    );
+    if (!canProceed) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
 
     context.read<MedicationBloc>().add(AddMedication(medication));
   }
@@ -459,7 +522,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
 
                 const SizedBox(height: 20),
                 MedicationSaveButton(
-                  onPressed: _submit,
+                  onPressed: () => _submit(),
                 ),
               ],
             ),

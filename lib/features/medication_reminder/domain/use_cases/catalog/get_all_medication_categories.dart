@@ -1,5 +1,5 @@
-import "../../entities/medication_category.dart";
-import "../../repositories/medication_catalog_repository.dart";
+import '../../entities/medication_category.dart';
+import '../../repositories/medication_catalog_repository.dart';
 
 class GetAllMedicationCategories {
   const GetAllMedicationCategories(this._repository);

@@ -1,5 +1,5 @@
-import "../entities/medication_catalog_entry.dart";
-import "../entities/medication_category.dart";
+import '../entities/medication_catalog_entry.dart';
+import '../entities/medication_category.dart';
 
 abstract class MedicationCatalogRepository {
   Future<List<MedicationCatalogEntry>> searchByName(
@@ -12,4 +12,8 @@ abstract class MedicationCatalogRepository {
   );
 
   Future<List<MedicationCategory>> getAllCategories();
+
+  Future<void> addCustomEntry(MedicationCatalogEntry entry);
+
+  Future<bool> existsByName(String name);
 }

@@ -4,12 +4,15 @@ import 'package:hive/hive.dart';
 import 'package:sifakapp/features/medication_reminder/application/notifications/notification_scheduler.dart';
 import 'package:sifakapp/features/medication_reminder/application/plan/schedule_from_plan.dart';
 import 'package:sifakapp/features/medication_reminder/data/data_sources/asset_medication_catalog_data_source.dart';
+import 'package:sifakapp/features/medication_reminder/data/data_sources/custom_medication_catalog_data_source.dart';
 import 'package:sifakapp/features/medication_reminder/data/data_sources/local_medication_plan_datasource.dart';
 import 'package:sifakapp/features/medication_reminder/data/repositories/medication_catalog_repository_impl.dart';
 import 'package:sifakapp/features/medication_reminder/data/repositories/medication_plan_repository_impl.dart';
 import 'package:sifakapp/features/medication_reminder/domain/repositories/medication_catalog_repository.dart';
 import 'package:sifakapp/features/medication_reminder/domain/repositories/medication_plan_repository.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/get_medication_category_by_key.dart';
+import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/add_custom_medication_catalog_entry.dart';
+import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/check_medication_catalog_entry_exists.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/get_all_medication_categories.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/search_medication_catalog.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/plan/apply_plan_for_medication.dart';
@@ -60,6 +63,9 @@ void setupLocator(
   sl.registerLazySingleton<AssetMedicationCatalogDataSource>(
     () => AssetMedicationCatalogDataSource(),
   );
+  sl.registerLazySingleton<CustomMedicationCatalogDataSource>(
+    () => CustomMedicationCatalogDataSource(),
+  );
 
   // Plan data-source placeholder (keep until plan repo ready)
   sl.registerLazySingleton<LocalMedicationPlanDataSource>(
@@ -71,7 +77,10 @@ void setupLocator(
     () => MedicationRepositoryImpl(sl()),
   );
   sl.registerLazySingleton<MedicationCatalogRepository>(
-    () => MedicationCatalogRepositoryImpl(sl()),
+    () => MedicationCatalogRepositoryImpl(
+      sl<AssetMedicationCatalogDataSource>(),
+      sl<CustomMedicationCatalogDataSource>(),
+    ),
   );
 
   sl.registerLazySingleton<MedicationPlanRepository>(
@@ -92,6 +101,10 @@ void setupLocator(
       () => GetMedicationCategoryByKey(sl()));
   sl.registerLazySingleton<GetAllMedicationCategories>(
       () => GetAllMedicationCategories(sl()));
+  sl.registerLazySingleton<CheckMedicationCatalogEntryExists>(
+      () => CheckMedicationCatalogEntryExists(sl()));
+  sl.registerLazySingleton<AddCustomMedicationCatalogEntry>(
+      () => AddCustomMedicationCatalogEntry(sl()));
 
   sl.registerLazySingleton<ApplyPlanForMedication>(
       () => ApplyPlanForMedication(sl(), sl()));
