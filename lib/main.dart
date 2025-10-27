@@ -172,6 +172,39 @@ ThemeData _buildTheme(Brightness brightness) {
     colorScheme: schemeFixed,
     primaryColor: primary,
     textTheme: GoogleFonts.manropeTextTheme(base.textTheme),
+    inputDecorationTheme: base.inputDecorationTheme.copyWith(
+      filled: true,
+      fillColor: schemeFixed.surfaceVariant.withOpacity(brightness == Brightness.light ? 0.6 : 0.3),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      floatingLabelBehavior: FloatingLabelBehavior.auto,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(width: 2, color: primary),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        textStyle: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+      ),
+    ),
+    sliderTheme: base.sliderTheme.copyWith(
+      activeTrackColor: primary,
+      thumbColor: primary,
+      overlayColor: primary.withOpacity(0.15),
+      inactiveTrackColor: schemeFixed.surfaceVariant,
+    ),
     appBarTheme: base.appBarTheme.copyWith(
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,

@@ -359,9 +359,17 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Add Medication')),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        appBar: AppBar(title: const Text('Plan Oluştur')),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: MedicationSaveButton(onPressed: _submit),
+          ),
+        ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Form(
             key: _formKey,
             child: Column(
@@ -373,10 +381,12 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                   onSuggestionSelected: _onMedicationSuggestionSelected,
                   onManuallyEdited: _onMedicationNameEdited,
                 ),
+                const SizedBox(height: 12),
                 MedicationDiagnosisField(
                   controller: _diagnosisController,
                   validator: Validator.validateDiagnosis,
                 ),
+                const SizedBox(height: 12),
                 MedicationTypeField(
                   categories: _categories,
                   selectedKey: _selectedCategoryKey,
@@ -388,33 +398,48 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                   },
                 ),
 
-                const SizedBox(height: 8),
-                MedicationStartDateField(
-                  startDate: _startDate,
-                  onPickDate: _pickStartDate,
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: MedicationStartDateField(
+                        startDate: _startDate,
+                        onPickDate: _pickStartDate,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: MedicationEndDateField(
+                        endDate: _endDate,
+                        onPickDate: _pickEndDate,
+                        onClear: () => setState(() => _endDate = null),
+                      ),
+                    ),
+                  ],
                 ),
-                MedicationEndDateField(
-                  endDate: _endDate,
-                  onPickDate: _pickEndDate,
-                  onClear: () => setState(() => _endDate = null),
-                ),
+                const SizedBox(height: 12),
                 MedicationExpirationDate(
                   expirationDate: _expirationDate,
                   onPickDate: _pickExpirationDate,
                   onClear: () => setState(() => _expirationDate = null),
                 ),
-
-                MedicationPillsField(
-                  controller: _pillsController,
-                  validator: Validator.validatePills,
-                  labelText: totalPillsLabel,
-                ),
+                const SizedBox(height: 16),
+                SectionHeader(title: 'Dozaj & Stok'),
                 MedicationDailyDosageSlider(
                   dailyDosage: _dailyDosage,
                   onChanged: (value) => setState(() => _dailyDosage = value),
                 ),
+                const SizedBox(height: 12),
+                MedicationPillsField(
+                  controller: _pillsController,
+                  validator: Validator.validatePills,
+                  labelText: _isCapsuleSelected
+                      ? 'Toplam Hap Sayısı'
+                      : 'Toplam Doz Sayısı',
+                ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
+                SectionHeader(title: 'Plan'),
                 // Time schedule
                 ScheduleModeSelector(
                   title: 'Saat Planı',
@@ -433,7 +458,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                         manualTimes, _dailyDosage, true),
                   ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 MedicationEveryDaySwitch(
                   isEveryDay: _isEveryDay,
                   onChanged: (v) {
@@ -511,7 +536,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                     ),
                 ],
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 MedicationMealInfo(
                   isAfterMeal: _isAfterMeal,
                   onChanged: (value) => setState(() => _isAfterMeal = value),
@@ -520,10 +545,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                       setState(() => _hoursBeforeOrAfterMeal = value.toInt()),
                 ),
 
-                const SizedBox(height: 20),
-                MedicationSaveButton(
-                  onPressed: () => _submit(),
-                ),
+                const SizedBox(height: 80),
               ],
             ),
           ),

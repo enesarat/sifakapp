@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class MedicationDailyDosageSlider extends StatelessWidget {
   const MedicationDailyDosageSlider({
@@ -12,20 +12,29 @@ class MedicationDailyDosageSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Günlük Doz: "),
-        Expanded(
-          child: Slider(
-            value: dailyDosage.toDouble(),
-            min: 1,
-            max: 5,
-            divisions: 4,
-            label: dailyDosage.toString(),
-            onChanged: (val) => onChanged(val.toInt()),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Günlük Doz'),
+            Text(
+              '$dailyDosage',
+              style: TextStyle(color: cs.primary, fontWeight: FontWeight.w700),
+            ),
+          ],
         ),
-        Text("$dailyDosage")
+        const SizedBox(height: 8),
+        Slider(
+          value: dailyDosage.toDouble(),
+          min: 1,
+          max: 10,
+          divisions: 9,
+          label: dailyDosage.toString(),
+          onChanged: (val) => onChanged(val.toInt()),
+        ),
       ],
     );
   }

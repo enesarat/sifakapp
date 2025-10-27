@@ -15,7 +15,7 @@ import 'package:sifakapp/features/medication_reminder/presentation/blocs/medicat
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_event.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_state.dart';
 
-// Reusable inputs
+// Reusable inputs (barrel)
 import '../widgets/widgets.dart';
 
 // utils
@@ -41,6 +41,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
   late final TextEditingController _nameController;
   late final TextEditingController _diagnosisController;
   late final TextEditingController _pillsController;
+  late final TextEditingController _remainingPillsController;
 
   late final GetAllMedicationCategories _getAllMedicationCategories =
       sl<GetAllMedicationCategories>();
@@ -75,6 +76,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
   // Meal info
   bool _isAfterMeal = true;
   int _hoursBeforeOrAfterMeal = 0;
+  int _usedPills = 0;
 
   // Catalog categories
   List<MedicationCategory> _categories = [];
@@ -91,6 +93,13 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     _nameController = TextEditingController();
     _diagnosisController = TextEditingController();
     _pillsController = TextEditingController();
+    _remainingPillsController = TextEditingController();
+
+    _pillsController.addListener(() {
+      final total = int.tryParse(_pillsController.text) ?? 0;
+      final remaining = (total - _usedPills).clamp(0, total);
+      _remainingPillsController.text = remaining.toString();
+    });
 
     _med = widget.initialMedication;
     if (_med != null) {
@@ -121,6 +130,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     _nameController.dispose();
     _diagnosisController.dispose();
     _pillsController.dispose();
+    _remainingPillsController.dispose();
     super.dispose();
   }
 
@@ -264,6 +274,9 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     _nameController.text = med.name;
     _diagnosisController.text = med.diagnosis;
     _pillsController.text = med.totalPills.toString();
+    final existingRemaining = med.remainingPills ?? med.totalPills;
+    _usedPills = (med.totalPills - existingRemaining).clamp(0, med.totalPills);
+    _remainingPillsController.text = existingRemaining.toString();
 
     _startDate = med.startDate;
     _endDate = med.endDate;
@@ -403,7 +416,8 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     }
 
     final totalPills = int.tryParse(_pillsController.text) ?? 0;
-    final remainingPills = totalPills;
+    final remainingPills =
+        int.tryParse(_remainingPillsController.text) ?? (totalPills - _usedPills).clamp(0, totalPills);
 
     final reminderTimes = _timeScheduleMode == ScheduleMode.manual
         ? _manualTimes
@@ -481,11 +495,20 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text("İlacı Düzenle")),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        appBar: AppBar(title: const Text('Plan Düzenle')),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: MedicationSaveButton(onPressed: _submit),
+          ),
+        ),
         body: !_ready
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -497,10 +520,12 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                         onSuggestionSelected: _onMedicationSuggestionSelected,
                         onManuallyEdited: _onMedicationNameEdited,
                       ),
+                      const SizedBox(height: 12),
                       MedicationDiagnosisField(
                         controller: _diagnosisController,
                         validator: Validator.validateDiagnosis,
                       ),
+                      const SizedBox(height: 12),
                       MedicationTypeField(
                         categories: _categories,
                         selectedKey: _selectedCategoryKey,
@@ -516,34 +541,66 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                         },
                       ),
 
-                      const SizedBox(height: 8),
-                      MedicationStartDateField(
-                        startDate: _startDate,
-                        onPickDate: _pickStartDate,
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: MedicationStartDateField(
+                              startDate: _startDate,
+                              onPickDate: _pickStartDate,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: MedicationEndDateField(
+                              endDate: _endDate,
+                              onPickDate: _pickEndDate,
+                              onClear: () => setState(() => _endDate = null),
+                            ),
+                          ),
+                        ],
                       ),
-                      MedicationEndDateField(
-                        endDate: _endDate,
-                        onPickDate: _pickEndDate,
-                        onClear: () => setState(() => _endDate = null),
-                      ),
+                      const SizedBox(height: 12),
                       MedicationExpirationDate(
                         expirationDate: _expirationDate,
                         onPickDate: _pickExpirationDate,
                         onClear: () => setState(() => _expirationDate = null),
                       ),
 
-                      MedicationPillsField(
-                        controller: _pillsController,
-                        validator: Validator.validatePills,
-                        labelText: totalPillsLabel,
-                      ),
+                      const SizedBox(height: 16),
+                      SectionHeader(title: 'Dozaj & Stok'),
                       MedicationDailyDosageSlider(
                         dailyDosage: _dailyDosage,
                         onChanged: (value) =>
                             setState(() => _dailyDosage = value),
                       ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: MedicationPillsField(
+                              controller: _pillsController,
+                              validator: Validator.validatePills,
+                              labelText: totalPillsLabel,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _remainingPillsController,
+                              readOnly: true,
+                              enabled: false,
+                              decoration: const InputDecoration(
+                                labelText: 'Kalan',
+                                hintText: 'örn. 25',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
+                      SectionHeader(title: 'Plan'),
                       // Time schedule
                       ScheduleModeSelector(
                         title: 'Saat Planı',
@@ -563,7 +620,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                                   manualTimes, _dailyDosage, true),
                         ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       MedicationEveryDaySwitch(
                         isEveryDay: _isEveryDay,
                         onChanged: (v) {
@@ -649,7 +706,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                           ),
                       ],
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       MedicationMealInfo(
                         isAfterMeal: _isAfterMeal,
                         onChanged: (value) =>
@@ -659,8 +716,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                             () => _hoursBeforeOrAfterMeal = value.toInt()),
                       ),
 
-                      const SizedBox(height: 20),
-                      MedicationSaveButton(onPressed: _submit),
+                      const SizedBox(height: 80),
                     ],
                   ),
                 ),
@@ -669,3 +725,4 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     );
   }
 }
+

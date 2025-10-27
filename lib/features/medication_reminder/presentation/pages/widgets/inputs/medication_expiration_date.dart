@@ -14,20 +14,25 @@ class MedicationExpirationDate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Text("SKT: "),
-        TextButton(
-          onPressed: onPickDate,
-          child: Text(expirationDate == null ? '—' : "${expirationDate!.toLocal()}".split(' ')[0]),
+    final formatted = expirationDate == null ? '' : "${expirationDate!.toLocal()}".split(' ')[0];
+    return TextFormField(
+      readOnly: true,
+      onTap: onPickDate,
+      decoration: InputDecoration(
+        labelText: 'SKT',
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (expirationDate != null)
+              IconButton(
+                icon: const Icon(Icons.clear),
+                tooltip: 'Temizle',
+                onPressed: onClear,
+              ),
+            const Icon(Icons.calendar_today_outlined),
+          ],
         ),
-        if (expirationDate != null)
-          IconButton(
-            icon: const Icon(Icons.clear),
-            tooltip: 'Temizle',
-            onPressed: onClear,
-          ),
-      ],
+      ).copyWith(hintText: formatted),
     );
   }
 }

@@ -15,17 +15,66 @@ class ScheduleModeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(title),
-      subtitle: const SizedBox(height: 6),
-      trailing: SegmentedButton<ScheduleMode>(
-        segments: const [
-          ButtonSegment(value: ScheduleMode.automatic, label: Text('Otomatik'), icon: Icon(Icons.auto_mode)),
-          ButtonSegment(value: ScheduleMode.manual, label: Text('Manuel'), icon: Icon(Icons.tune)),
+    final cs = Theme.of(context).colorScheme;
+    final selectedColor = Colors.white;
+    final unselectedColor = cs.onSurface.withOpacity(0.6);
+
+    Widget pill(String text, bool selected, VoidCallback onTap) => Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: selected
+                    ? (Theme.of(context).brightness == Brightness.light
+                        ? selectedColor
+                        : cs.surfaceVariant)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: selected ? cs.primary : unselectedColor,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: cs.surfaceVariant.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                pill('Otomatik', value == ScheduleMode.automatic,
+                    () => onChanged(ScheduleMode.automatic)),
+                const SizedBox(width: 6),
+                pill('Manuel', value == ScheduleMode.manual,
+                    () => onChanged(ScheduleMode.manual)),
+              ],
+            ),
+          ),
         ],
-        selected: {value},
-        onSelectionChanged: (s) => onChanged(s.first),
       ),
     );
   }
