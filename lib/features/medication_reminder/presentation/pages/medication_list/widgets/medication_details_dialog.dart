@@ -360,7 +360,8 @@ class _PlannedTimesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFFFFAB70);
+    // Match list item time color (green)
+    const accent = Color(0xFF2BAA7F);
     final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.w700,
           color: accent,
