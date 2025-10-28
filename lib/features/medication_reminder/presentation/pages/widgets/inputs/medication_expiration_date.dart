@@ -16,7 +16,9 @@ class MedicationExpirationDate extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatted = expirationDate == null ? '' : "${expirationDate!.toLocal()}".split(' ')[0];
     return TextFormField(
+      key: ValueKey(formatted),
       readOnly: true,
+      initialValue: formatted,
       onTap: onPickDate,
       decoration: InputDecoration(
         labelText: 'SKT',
@@ -32,7 +34,7 @@ class MedicationExpirationDate extends StatelessWidget {
             const Icon(Icons.calendar_today_outlined),
           ],
         ),
-      ).copyWith(hintText: formatted),
+      ),
     );
   }
 }

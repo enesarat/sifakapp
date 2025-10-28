@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class MedicationEndDateField extends StatelessWidget {
   const MedicationEndDateField({
@@ -16,7 +16,9 @@ class MedicationEndDateField extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatted = endDate == null ? '' : "${endDate!.toLocal()}".split(' ')[0];
     return TextFormField(
+      key: ValueKey(formatted),
       readOnly: true,
+      initialValue: formatted,
       onTap: onPickDate,
       decoration: InputDecoration(
         labelText: 'Bitiş',
@@ -32,7 +34,7 @@ class MedicationEndDateField extends StatelessWidget {
             const Icon(Icons.calendar_today_outlined),
           ],
         ),
-      ).copyWith(hintText: formatted),
+      ),
     );
   }
 }

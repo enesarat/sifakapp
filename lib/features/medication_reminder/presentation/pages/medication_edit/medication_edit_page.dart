@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:sifakapp/core/service_locator.dart';
@@ -356,7 +356,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
   Future<void> _pickTime(int index) async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: 8 + index * 3, minute: 0),
+      initialTime: (_manualTimes.length > index) ? _manualTimes[index] : TimeOfDay(hour: 8 + index * 3, minute: 0),
     );
     if (picked != null) {
       setState(() {

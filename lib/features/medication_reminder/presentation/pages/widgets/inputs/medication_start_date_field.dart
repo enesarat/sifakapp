@@ -14,12 +14,14 @@ class MedicationStartDateField extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatted = "${startDate.toLocal()}".split(' ')[0];
     return TextFormField(
+      key: ValueKey(formatted),
       readOnly: true,
+      initialValue: formatted,
       onTap: onPickDate,
       decoration: const InputDecoration(
         labelText: 'Başlangıç',
         suffixIcon: Icon(Icons.calendar_today_outlined),
-      ).copyWith(hintText: formatted),
+      ),
     );
   }
 }
