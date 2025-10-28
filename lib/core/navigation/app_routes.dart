@@ -1,5 +1,6 @@
 // lib/core/navigation/app_routes.dart
 import 'package:flutter/material.dart';
+import 'dart:ui' show ImageFilter;
 import 'package:go_router/go_router.dart';
 
 import 'package:sifakapp/core/navigation/app_route_paths.dart';
@@ -12,6 +13,7 @@ import 'package:sifakapp/features/medication_reminder/presentation/pages/medicat
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/medication_list_page.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/medication_details_dialog.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/confirm_delete_medication_dialog.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/delete_medication_dialog.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/missed/missed_doses_page.dart';
 
 part 'app_routes.g.dart';
@@ -109,6 +111,11 @@ class MedicationDetailsDialogRoute extends GoRouteData {
     return DialogPage<void>(
       builder: (context) => MedicationDetailsDialog(medication: med, id: id),
       barrierDismissible: true,
+      // Cam/blur arkaplanlı modal
+      useGlassBackground: true,
+      barrierColor: Colors.transparent,
+      blurSigma: 14,
+      overlayColor: Colors.black.withOpacity(0.35),
     );
   }
 }
@@ -125,26 +132,12 @@ class ConfirmDeleteMedicationRoute extends GoRouteData {
   Page<bool> buildPage(BuildContext context, GoRouterState state) {
     final med = state.extra as Medication?;
     return DialogPage<bool>(
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Silme İşlemi'),
-          content: Text(
-            '“${med?.name ?? id}” ilacını silmek istediğinizden emin misiniz?\n'
-            'Bu işlem geri alınamaz ve ilgili hatırlatmalar kaldırılacaktır.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => context.pop(false),
-              child: const Text('Vazgeç'),
-            ),
-            FilledButton.tonal(
-              onPressed: () => context.pop(true),
-              child: const Text('Sil'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => DeleteMedicationDialog(id: id, medication: med),
       barrierDismissible: true,
+      useGlassBackground: true,
+      barrierColor: Colors.transparent,
+      blurSigma: 14,
+      overlayColor: Colors.black.withOpacity(0.35),
     );
   }
 }
@@ -153,21 +146,46 @@ class DialogPage<T> extends Page<T> {
   const DialogPage({
     required this.builder,
     this.barrierDismissible = true,
+    this.barrierColor,
+    this.useGlassBackground = false,
+    this.blurSigma = 10,
+    this.overlayColor,
     super.key,
   });
 
   final WidgetBuilder builder;
   final bool barrierDismissible;
+  final Color? barrierColor;
+  final bool useGlassBackground;
+  final double blurSigma;
+  final Color? overlayColor;
 
   @override
   Route<T> createRoute(BuildContext context) {
     return DialogRoute<T>(
       context: context,
-      builder: builder,
+      barrierColor: barrierColor,
       barrierDismissible: barrierDismissible,
       // Important for Navigator 2.0 (page-based) navigators:
       // ensure the created route carries this Page as its settings.
       settings: this,
+      builder: (ctx) {
+        final child = builder(ctx);
+        if (!useGlassBackground) return child;
+        return Stack(
+          children: [
+            // Arkaplanda cam/blur efektli katman
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+                child: Container(color: overlayColor ?? Colors.black.withOpacity(0.25)),
+              ),
+            ),
+            // Diyalog içerik
+            Center(child: child),
+          ],
+        );
+      },
     );
   }
 }

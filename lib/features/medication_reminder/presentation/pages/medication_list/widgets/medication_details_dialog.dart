@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import 'package:sifakapp/core/navigation/app_routes.dart';
 import '../../../../domain/entities/medication.dart';
+import '../../../../domain/entities/medication_category.dart';
 import '../../../blocs/medication/medication_bloc.dart';
 import '../../../blocs/medication/medication_event.dart';
 import '../../../blocs/medication/medication_state.dart';
 import 'confirm_delete_medication_dialog.dart';
+import '../../../../application/plan/auto_time_util.dart';
 
 class MedicationDetailsDialog extends StatefulWidget {
   const MedicationDetailsDialog({super.key, required this.id, this.medication});
@@ -26,6 +28,11 @@ class _MedicationDetailsDialogState extends State<MedicationDetailsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final primary = colorScheme.primary;
+    final primaryLight = const Color(0xFFE7F8FE);
+    final dividerColor = Theme.of(context).dividerColor.withOpacity(0.2);
+
     return BlocListener<MedicationBloc, MedicationState>(
       listenWhen: (prev, curr) => curr is MedicationDeleted || curr is MedicationError,
       listener: (ctx, state) {
@@ -42,100 +49,183 @@ class _MedicationDetailsDialogState extends State<MedicationDetailsDialog> {
         }
       },
       child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: const EdgeInsets.all(20),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF101D22)
+            : Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
         child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
+            ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.75,
+                maxWidth: 520,
+                maxHeight: MediaQuery.of(context).size.height * 0.82,
               ),
               child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      _med.name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 48, height: 48),
+                        Text(
+                          'İlaç Detayı',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: IconButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    const Divider(),
-                    const SizedBox(height: 12),
 
-                    _detailRow('Tanı', _med.diagnosis),
-                    _detailRow('Tür', _med.type),
+                    const SizedBox(height: 4),
 
-                    _detailRow('Başlangıç', _formatDate(_med.startDate)),
-                    if (_med.endDate != null)
-                      _detailRow('Bitiş', _formatDate(_med.endDate)),
-                    if (_med.expirationDate != null)
-                      _detailRow('SKT', _formatDate(_med.expirationDate)),
-
-                    _detailRow('Toplam Hap', _med.totalPills.toString()),
-                    _detailRow('Kalan Hap', _med.remainingPills.toString()),
-                    _detailRow('Günlük Doz', _med.dailyDosage.toString()),
-
-                    _detailRow('Saat Planı', _scheduleModeLabel(_med.timeScheduleMode)),
-                    _detailRow(
-                      'Gün Planı',
-                      '${_scheduleModeLabel(_med.dayScheduleMode)}${_med.isEveryDay ? ' • Her gün' : ''}',
+                    // Diagnosis + Name
+                    Column(
+                      children: [
+                        Text(
+                          _med.diagnosis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: const Color(0xFF4C869A),
+                                fontWeight: FontWeight.w600,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _med.name,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                      ],
                     ),
-                    if (!_med.isEveryDay && _med.usageDays != null && _med.usageDays!.isNotEmpty)
-                      _detailRow('Kullanılacak Günler', _formatUsageDays(_med.usageDays)),
 
-                    if (_med.reminderTimes != null && _med.reminderTimes!.isNotEmpty)
-                      _detailRow(
-                        'Hatırlatıcı Saatler',
-                        _med.reminderTimes!.map((e) => e.format(context)).join(', '),
+                    const SizedBox(height: 16),
+
+                    // Icon + planned times (top area)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? primary.withOpacity(0.12)
+                                  : primaryLight,
+                              shape: BoxShape.circle,
+                              // shadow removed per request
+                            ),
+                            child: Icon(
+                              _iconForMedication(_med),
+                              color: primary,
+                              size: 64,
+                            ),
+                          ),
+                          const SizedBox(width: 28),
+                          Flexible(child: _PlannedTimesList(times: _getPlannedTimes(_med))),
+                        ],
+                      ),
+                    ),
+
+                    // Stats (daha kompakt yükseklik, daha geniş kutular)
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StatTile(
+                            label: 'Toplam Doz',
+                            value: _med.totalPills.toString(),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _StatTile(
+                            label: 'Kalan Doz',
+                            value: _med.remainingPills.toString(),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+                    Divider(color: dividerColor),
+
+                    // Details list
+                    _detailItem(
+                      context,
+                      label: 'Tarih Aralığı',
+                      value: _formatDateRange(_med.startDate, _med.endDate),
+                    ),
+                    _detailItem(
+                      context,
+                      label: 'Günlük Doz',
+                      value: 'Günde ${_med.dailyDosage} kez, 1 tablet',
+                    ),
+                    // Planlama bilgisi (günler)
+                    _planlamaItem(context),
+                    if (_med.isAfterMeal != null)
+                      _detailItem(
+                        context,
+                        label: 'Yemek İlişkisi',
+                        value: _formatMeal(_med),
                       ),
 
-                    if (_med.isAfterMeal != null)
-                      _detailRow('Yemek Zamanı', _formatMeal(_med)),
+                    const SizedBox(height: 8),
+                    Divider(color: dividerColor),
+                    const SizedBox(height: 12),
 
-                    const SizedBox(height: 24),
-
+                    // Actions
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        OutlinedButton.icon(
-                          onPressed: _isDeleting
-                              ? null
-                              : () {
-                                  Navigator.of(context).pop();
-                                  Future.microtask(() => context.push(
-                                        MedicationEditRoute(id: _med.id).location,
-                                        extra: _med,
-                                      ));
-                                },
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          label: const Text('Düzenle', style: TextStyle(color: Colors.blue)),
+                        Expanded(
+                          child: _PrimaryButton(
+                            label: 'Düzenle',
+                            onPressed: _isDeleting
+                                ? null
+                                : () {
+                                    Navigator.of(context).pop();
+                                    Future.microtask(() => context.push(
+                                          MedicationEditRoute(id: _med.id).location,
+                                          extra: _med,
+                                        ));
+                                  },
+                          ),
                         ),
-                        OutlinedButton.icon(
-                          onPressed: _isDeleting
-                              ? null
-                              : () async {
-                                  final confirmed = await showConfirmDeleteMedicationDialog(
-                                    context,
-                                    med: _med,
-                                  );
-                                  if (confirmed == true) {
-                                    setState(() => _isDeleting = true);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('İlaç siliniyor...'),
-                                        duration: Duration(seconds: 2),
-                                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _DangerButton(
+                            label: 'Sil',
+                            onPressed: _isDeleting
+                                ? null
+                                : () async {
+                                    final confirmed = await showConfirmDeleteMedicationDialog(
+                                      context,
+                                      med: _med,
                                     );
-                                    context.read<MedicationBloc>().add(RemoveMedication(_med.id));
-                                  }
-                                },
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          label: const Text('Sil', style: TextStyle(color: Colors.red)),
+                                    if (confirmed == true && mounted) {
+                                      setState(() => _isDeleting = true);
+                                      context.read<MedicationBloc>().add(RemoveMedication(_med.id));
+                                    }
+                                  },
+                          ),
                         ),
                       ],
                     ),
@@ -149,7 +239,7 @@ class _MedicationDetailsDialogState extends State<MedicationDetailsDialog> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(26),
                   ),
                   alignment: Alignment.center,
                   child: const CircularProgressIndicator(),
@@ -160,66 +250,335 @@ class _MedicationDetailsDialogState extends State<MedicationDetailsDialog> {
       ),
     );
   }
-}
 
-Widget _detailRow(String label, String value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6.0),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(width: 4),
-        Expanded(
-          flex: 4,
-          child: Text(
-            '$label:',
-            style: const TextStyle(fontWeight: FontWeight.w600),
+  Widget _detailItem(
+    BuildContext context, {
+    required String label,
+    required String value,
+  }) {
+    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF4C869A),
+          fontWeight: FontWeight.w600,
+        );
+    final valueStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w600,
+        );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(child: Text(label, style: labelStyle)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              style: valueStyle,
+              textAlign: TextAlign.right,
+            ),
           ),
-        ),
-        Expanded(
-          flex: 6,
-          child: Text(
-            value,
-            style: TextStyle(color: Colors.grey[700]),
+        ],
+      ),
+    );
+  }
+
+  Widget _planlamaItem(BuildContext context) {
+    if (_med.isEveryDay) {
+      return _detailItem(context, label: 'Planlama', value: 'Her gün');
+    }
+    final days = _med.usageDays ?? const <int>[];
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              'Planlama',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF4C869A),
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
-// -------------------------
-// Helpers (null-safe)
-// -------------------------
-
-String _formatDate(DateTime? dt) {
-  if (dt == null) return '—';
-  final d = dt.toLocal();
-  final y = d.year.toString().padLeft(4, '0');
-  final m = d.month.toString().padLeft(2, '0');
-  final day = d.day.toString().padLeft(2, '0');
-  return '$y-$m-$day';
-}
-
-String _scheduleModeLabel(ScheduleMode mode) {
-  switch (mode) {
-    case ScheduleMode.automatic:
-      return 'Otomatik';
-    case ScheduleMode.manual:
-      return 'Manuel';
+          const SizedBox(width: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: days
+                .map((d) => _DayChip(label: _turkishDayLetter(d)))
+                .toList(growable: false),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-String _formatUsageDays(List<int>? days) {
-  if (days == null || days.isEmpty) return '—';
-  const names = { 1: 'Pzt', 2: 'Sal', 3: 'Çar', 4: 'Per', 5: 'Cum', 6: 'Cts', 7: 'Paz' };
-  return days.map((d) => names[d] ?? d.toString()).join(', ');
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2A2F34) : const Color(0xFFF1F3F5),
+        borderRadius: BorderRadius.circular(26),
+      ),
+      constraints: const BoxConstraints(minHeight: 52),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF4C869A),
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannedTimesList extends StatelessWidget {
+  const _PlannedTimesList({required this.times});
+  final List<TimeOfDay> times;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = Color(0xFFFFAB70);
+    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: accent,
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final t in times)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.schedule, color: accent, size: 20),
+                const SizedBox(width: 8),
+                Text(t.format(context), style: textStyle),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _DayChip extends StatelessWidget {
+  const _DayChip({required this.label});
+  final String label;
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final primary = colorScheme.primary;
+    final primaryLight = const Color(0xFFE7F8FE);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: 32,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: isDark ? primary.withOpacity(0.12) : primaryLight,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: isDark ? primaryLight : primary,
+              fontWeight: FontWeight.w800,
+            ),
+      ),
+    );
+  }
+}
+
+class _PrimaryButton extends StatelessWidget {
+  const _PrimaryButton({required this.label, required this.onPressed});
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 48,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colorScheme.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+}
+
+class _DangerButton extends StatelessWidget {
+  const _DangerButton({required this.label, required this.onPressed});
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? Colors.red.withOpacity(0.12) : const Color(0xFFE7F0F3);
+    final fg = isDark ? Colors.red.shade300 : const Color(0xFFD0021B);
+    return SizedBox(
+      height: 48,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bg,
+          foregroundColor: fg,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+}
+
+// -------------------------
+// Helpers
+// -------------------------
+
+List<TimeOfDay> _getPlannedTimes(Medication m) {
+  if (m.timeScheduleMode == ScheduleMode.manual && m.reminderTimes != null && m.reminderTimes!.isNotEmpty) {
+    final list = List<TimeOfDay>.from(m.reminderTimes!);
+    list.sort((a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute));
+    return list;
+  }
+  final minutes = autoDistributeTimes(m.dailyDosage)..sort();
+  return minutes.map((mm) => TimeOfDay(hour: mm ~/ 60, minute: mm % 60)).toList();
+}
+
+String _formatDateRange(DateTime start, DateTime? end) {
+  final s = _formatDate(start);
+  final e = end != null ? _formatDate(end) : '—';
+  return '$s - $e';
+}
+
+String _formatDate(DateTime dt) {
+  final d = dt.toLocal();
+  final dd = d.day.toString().padLeft(2, '0');
+  final mm = d.month.toString().padLeft(2, '0');
+  final yy = (d.year % 100).toString().padLeft(2, '0');
+  return '$dd.$mm.$yy';
 }
 
 String _formatMeal(Medication m) {
   final suffix = (m.hoursBeforeOrAfterMeal != null && m.hoursBeforeOrAfterMeal != 0)
       ? ' ${m.hoursBeforeOrAfterMeal} sa'
       : '';
-  return m.isAfterMeal! ? 'Yemekten sonra$suffix' : 'Yemekten önce$suffix';
+  if (m.isAfterMeal == null) return '—';
+  return m.isAfterMeal! ? 'Tok karnına$suffix' : 'Aç karnına$suffix';
 }
 
+String _turkishDayLetter(int weekday) {
+  // 1=Mon..7=Sun
+  switch (weekday) {
+    case DateTime.monday:
+      return 'Pt'; // Pazartesi
+    case DateTime.tuesday:
+      return 'Sa'; // Salı
+    case DateTime.wednesday:
+      return 'Çr'; // Çarşamba
+    case DateTime.thursday:
+      return 'Pe'; // Perşembe
+    case DateTime.friday:
+      return 'Cu'; // Cuma
+    case DateTime.saturday:
+      return 'Ct'; // Cumartesi
+    case DateTime.sunday:
+      return 'Pa'; // Pazar
+    default:
+      return '?';
+  }
+}
+
+// --- Icon helpers (match type dropdown mapping) ---
+IconData _iconForMedication(Medication m) {
+  final key = _deriveCategoryKeyFromType(m.type) ?? MedicationCategoryKey.oralCapsule;
+  return _iconForCategoryKey(key);
+}
+
+MedicationCategoryKey? _deriveCategoryKeyFromType(String value) {
+  final v = value.trim();
+  final byKey = MedicationCategoryKey.fromValue(v);
+  if (byKey != null) return byKey;
+
+  final t = v.toLowerCase();
+  bool containsAny(List<String> needles) => needles.any((n) => t.contains(n));
+
+  if (containsAny(const ['kaps', 'tablet', 'hap', 'capsule', 'pill'])) {
+    return MedicationCategoryKey.oralCapsule;
+  }
+  if (containsAny(const ['pomad', 'merhem', 'krem', 'jel'])) {
+    return MedicationCategoryKey.topicalSemisolid;
+  }
+  if (containsAny(const ['enjeks', 'amp', 'flakon', 'iğne', 'igne', 'vial'])) {
+    return MedicationCategoryKey.parenteral;
+  }
+  if (containsAny(const ['şurup', 'surup', 'sirup'])) {
+    return MedicationCategoryKey.oralSyrup;
+  }
+  if (containsAny(const ['süspans', 'suspans'])) {
+    return MedicationCategoryKey.oralSuspension;
+  }
+  if (containsAny(const ['damla', 'drop'])) {
+    return MedicationCategoryKey.oralDrops;
+  }
+  if (containsAny(const ['solüsyon', 'solution', 'çözelti', 'cozelti'])) {
+    return MedicationCategoryKey.oralSolution;
+  }
+  return null;
+}
+
+IconData _iconForCategoryKey(MedicationCategoryKey key) {
+  switch (key) {
+    case MedicationCategoryKey.oralCapsule:
+      return Icons.medication_outlined;
+    case MedicationCategoryKey.topicalSemisolid:
+      return Icons.icecream_outlined;
+    case MedicationCategoryKey.parenteral:
+      return Icons.vaccines_outlined;
+    case MedicationCategoryKey.oralSyrup:
+      return Icons.medication_liquid_outlined;
+    case MedicationCategoryKey.oralSuspension:
+      return Icons.science_outlined;
+    case MedicationCategoryKey.oralDrops:
+      return Icons.water_drop_outlined;
+    case MedicationCategoryKey.oralSolution:
+      return Icons.bubble_chart_outlined;
+  }
+}
