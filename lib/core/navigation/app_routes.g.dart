@@ -9,6 +9,9 @@ part of 'app_routes.dart';
 List<RouteBase> get $appRoutes => [
       $homeRoute,
       $medicationFormRoute,
+      $medicationWizardStep1Route,
+      $medicationWizardStep2Route,
+      $medicationWizardStep3Route,
       $addCatalogEntryConfirmRoute,
       $medicationEditRoute,
       $doseIntakeRoute,
@@ -50,6 +53,75 @@ extension $MedicationFormRouteExtension on MedicationFormRoute {
 
   String get location => GoRouteData.$location(
         '/medications/new',
+      );
+
+  void go(BuildContext context) => context.go(location);
+
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $medicationWizardStep1Route => GoRouteData.$route(
+      path: '/medications/new/step1',
+      factory: $MedicationWizardStep1RouteExtension._fromState,
+    );
+
+extension $MedicationWizardStep1RouteExtension on MedicationWizardStep1Route {
+  static MedicationWizardStep1Route _fromState(GoRouterState state) =>
+      const MedicationWizardStep1Route();
+
+  String get location => GoRouteData.$location(
+        '/medications/new/step1',
+      );
+
+  void go(BuildContext context) => context.go(location);
+
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $medicationWizardStep2Route => GoRouteData.$route(
+      path: '/medications/new/step2',
+      factory: $MedicationWizardStep2RouteExtension._fromState,
+    );
+
+extension $MedicationWizardStep2RouteExtension on MedicationWizardStep2Route {
+  static MedicationWizardStep2Route _fromState(GoRouterState state) =>
+      const MedicationWizardStep2Route();
+
+  String get location => GoRouteData.$location(
+        '/medications/new/step2',
+      );
+
+  void go(BuildContext context) => context.go(location);
+
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $medicationWizardStep3Route => GoRouteData.$route(
+      path: '/medications/new/step3',
+      factory: $MedicationWizardStep3RouteExtension._fromState,
+    );
+
+extension $MedicationWizardStep3RouteExtension on MedicationWizardStep3Route {
+  static MedicationWizardStep3Route _fromState(GoRouterState state) =>
+      const MedicationWizardStep3Route();
+
+  String get location => GoRouteData.$location(
+        '/medications/new/step3',
       );
 
   void go(BuildContext context) => context.go(location);

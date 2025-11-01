@@ -1,8 +1,9 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
+// import 'package:sifakapp/core/navigation/app_routes.dart';
+import 'package:sifakapp/core/navigation/app_route_paths.dart';
 import 'package:sifakapp/core/navigation/app_routes.dart';
 
 import '../../../domain/entities/medication.dart';
@@ -121,7 +122,7 @@ class _DoseIntakePageState extends State<DoseIntakePage> {
               IconButton(
                 tooltip: 'Kapat',
                 icon: const Icon(Icons.close),
-                onPressed: () => context.go(const HomeRoute().location),
+                onPressed: () => const HomeRoute().go(context),
               ),
             ],
           ),
@@ -139,7 +140,7 @@ class _DoseIntakePageState extends State<DoseIntakePage> {
     if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.go(const HomeRoute().location);
+      const HomeRoute().go(context);
     });
   }
 
@@ -462,3 +463,4 @@ IconData _iconForCategoryKey(MedicationCategoryKey key) {
       return Icons.bubble_chart_outlined;
   }
 }
+

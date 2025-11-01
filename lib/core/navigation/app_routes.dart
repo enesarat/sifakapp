@@ -10,6 +10,10 @@ import 'package:sifakapp/features/medication_reminder/presentation/pages/catalog
 import 'package:sifakapp/features/medication_reminder/presentation/pages/dose_intake/dose_intake_page.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_edit/medication_edit_page.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_form/medication_form_page.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_wizard/steps/step1_medication_info_page.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_wizard/steps/step2_dosage_schedule_page.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_wizard/steps/step3_reminder_page.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_wizard/medication_wizard_state.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/medication_list_page.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/medication_details_dialog.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/confirm_delete_medication_dialog.dart';
@@ -33,7 +37,45 @@ class MedicationFormRoute extends GoRouteData {
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      const MedicationFormPage();
+      const Step1MedicationInfoPage();
+}
+
+// Wizard step routes (typed)
+@TypedGoRoute<MedicationWizardStep1Route>(
+  path: AppRoutePaths.medicationsNewStep1,
+)
+class MedicationWizardStep1Route extends GoRouteData {
+  const MedicationWizardStep1Route();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const Step1MedicationInfoPage();
+}
+
+@TypedGoRoute<MedicationWizardStep2Route>(
+  path: AppRoutePaths.medicationsNewStep2,
+)
+class MedicationWizardStep2Route extends GoRouteData {
+  const MedicationWizardStep2Route();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    final wiz = state.extra as MedicationWizardState?;
+    return Step2DosageSchedulePage(wiz: wiz);
+  }
+}
+
+@TypedGoRoute<MedicationWizardStep3Route>(
+  path: AppRoutePaths.medicationsNewStep3,
+)
+class MedicationWizardStep3Route extends GoRouteData {
+  const MedicationWizardStep3Route();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    final wiz = state.extra as MedicationWizardState?;
+    return Step3ReminderPage(wiz: wiz);
+  }
 }
 
 @TypedGoRoute<AddCatalogEntryConfirmRoute>(
@@ -111,7 +153,7 @@ class MedicationDetailsDialogRoute extends GoRouteData {
     return DialogPage<void>(
       builder: (context) => MedicationDetailsDialog(medication: med, id: id),
       barrierDismissible: true,
-      // Cam/blur arkaplanlı modal
+      // Cam/blur arkaplanlÄ± modal
       useGlassBackground: true,
       barrierColor: Colors.transparent,
       blurSigma: 14,
@@ -181,7 +223,7 @@ class DialogPage<T> extends Page<T> {
                 child: Container(color: overlayColor ?? Colors.black.withOpacity(0.25)),
               ),
             ),
-            // Diyalog içerik
+            // Diyalog iÃ§erik
             Center(child: child),
           ],
         );
