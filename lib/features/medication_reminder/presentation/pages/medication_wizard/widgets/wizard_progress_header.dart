@@ -68,7 +68,8 @@ class WizardProgressHeader extends StatelessWidget {
     final mq = MediaQuery.of(context);
     final h = mq.size.height;
     final extra = ((h.clamp(480.0, 900.0) as double) - 480.0) / (900.0 - 480.0) * 8.0; // 0..8
-    final bottom = 12.0 + extra;
+    // Apply the same extra spacing once more (double the incremental part)
+    final bottom = 12.0 + (extra * 2);
     return Padding(
       padding: EdgeInsets.only(left: 12, right: 12, top: 8, bottom: bottom),
       child: Row(

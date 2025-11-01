@@ -297,7 +297,7 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
             borderSide: BorderSide.none,
           ),
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           prefixIcon: widget.decoratedPrefixIcon
               ? Padding(
                   padding: const EdgeInsets.only(left: 8, right: 8),
@@ -310,10 +310,10 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
               : const Icon(Icons.category_outlined),
           prefixIconConstraints:
               const BoxConstraints(minWidth: 0, minHeight: 0),
-          isDense: true,
+          isDense: false,
         ),
         child: const SizedBox(
-          height: 48,
+          height: 56,
           child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
         ),
       );
@@ -356,7 +356,7 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
               borderSide: BorderSide(color: cs.primary, width: 1),
             ),
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
             prefixIcon: widget.decoratedPrefixIcon
                 ? Padding(
                     padding: const EdgeInsets.only(left: 8, right: 8),
