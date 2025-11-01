@@ -37,6 +37,36 @@ class _Step3ReminderPageState extends State<Step3ReminderPage> {
       initialDate: initial,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 20),
+      builder: (ctx, child) {
+        final base = Theme.of(ctx);
+        final accent = WizardPalette.primary;
+        final purple = base.copyWith(
+          colorScheme: base.colorScheme.copyWith(primary: accent),
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: accent,
+            selectionColor: accent.withOpacity(0.28),
+            selectionHandleColor: accent,
+          ),
+          inputDecorationTheme: base.inputDecorationTheme.copyWith(
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(width: 2, color: accent),
+            ),
+          ),
+          datePickerTheme: base.datePickerTheme.copyWith(
+            headerForegroundColor: accent,
+            dividerColor: accent,
+          ),
+          timePickerTheme: base.timePickerTheme.copyWith(
+            hourMinuteTextColor: accent,
+            dayPeriodTextColor: accent,
+            dialHandColor: accent,
+            hourMinuteColor: accent.withOpacity(0.12),
+            dayPeriodColor: accent.withOpacity(0.12),
+          ),
+        );
+        return Theme(data: purple, child: child!);
+      },
     );
     if (picked != null && mounted) setState(() => _wiz!.setExpirationDate(picked));
   }
@@ -96,9 +126,24 @@ class _Step3ReminderPageState extends State<Step3ReminderPage> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        child: Form(
+      body: Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme.copyWith(primary: WizardPalette.primary),
+          textSelectionTheme: const TextSelectionThemeData(
+            cursorColor: WizardPalette.primary,
+            selectionColor: Color(0x448A5CF6),
+            selectionHandleColor: WizardPalette.primary,
+          ),
+          inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(width: 2, color: WizardPalette.primary),
+            ),
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,13 +173,14 @@ class _Step3ReminderPageState extends State<Step3ReminderPage> {
                 hoursBeforeOrAfterMeal: _wiz!.hoursBeforeOrAfterMeal,
                 onChanged: (v) => setState(() => _wiz!.setMealAfter(v)),
                 onSliderChanged: (v) => setState(() => _wiz!.setMealHours(v.toInt())),
+                accentColor: WizardPalette.primary,
               ),
 
             ],
           ),
         ),
       ),
-    );
+    ));
   }
 }
 

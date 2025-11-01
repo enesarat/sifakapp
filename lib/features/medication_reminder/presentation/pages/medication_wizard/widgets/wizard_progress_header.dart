@@ -64,8 +64,13 @@ class WizardProgressHeader extends StatelessWidget {
           ),
         );
 
+    // Dynamic bottom spacing: slightly increase on taller screens
+    final mq = MediaQuery.of(context);
+    final h = mq.size.height;
+    final extra = ((h.clamp(480.0, 900.0) as double) - 480.0) / (900.0 - 480.0) * 8.0; // 0..8
+    final bottom = 12.0 + extra;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.only(left: 12, right: 12, top: 8, bottom: bottom),
       child: Row(
         children: [
           _circle(context, 1, 'İlaç Bilgileri',
@@ -78,7 +83,7 @@ class WizardProgressHeader extends StatelessWidget {
           const SizedBox(width: 8),
           line(activeStep > 2),
           const SizedBox(width: 8),
-          _circle(context, 3, 'Hatırlatıcı', active: activeStep == 3),
+          _circle(context, 3, 'Stok & Öğün', active: activeStep == 3),
         ],
       ),
     );

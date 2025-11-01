@@ -14,6 +14,8 @@ class MedicationNameField extends StatefulWidget {
     this.onSuggestionSelected,
     this.onManuallyEdited,
     this.suggestionLimit = 20,
+    this.decoratedPrefixIcon = false,
+    this.prefixColor,
   });
 
   final TextEditingController controller;
@@ -21,6 +23,8 @@ class MedicationNameField extends StatefulWidget {
   final ValueChanged<MedicationCatalogEntry>? onSuggestionSelected;
   final VoidCallback? onManuallyEdited;
   final int suggestionLimit;
+  final bool decoratedPrefixIcon;
+  final Color? prefixColor;
 
   @override
   State<MedicationNameField> createState() => _MedicationNameFieldState();
@@ -132,13 +136,20 @@ class _MedicationNameFieldState extends State<MedicationNameField> {
 
   @override
   Widget build(BuildContext context) {
+    final primary = widget.prefixColor ?? Theme.of(context).colorScheme.primary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextFormField(
           controller: widget.controller,
           focusNode: _focusNode,
-          decoration: const InputDecoration(labelText: 'İlaç Adı'),
+          decoration: InputDecoration(
+            labelText: 'İlaç Adı',
+            prefixIcon: widget.decoratedPrefixIcon ? Padding(padding: const EdgeInsets.only(left: 8, right: 8), child: Icon(Icons.medication_outlined, size: 18, color: primary)) : null ,
+            prefixIconConstraints:
+                const BoxConstraints(minWidth: 0, minHeight: 0),
+          ),
           validator: widget.validator,
           onChanged: _onTextChanged,
         ),
@@ -299,9 +310,8 @@ class _SuggestionPanelState extends State<_SuggestionPanel>
         child: Container(
           margin: const EdgeInsets.only(top: 4),
           decoration: BoxDecoration(
-            color: theme.brightness == Brightness.light
-                ? Colors.white
-                : cs.surface,
+            color:
+                theme.brightness == Brightness.light ? Colors.white : cs.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: borderColor),
             boxShadow: [
@@ -318,3 +328,7 @@ class _SuggestionPanelState extends State<_SuggestionPanel>
     );
   }
 }
+
+
+
+

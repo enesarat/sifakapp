@@ -9,12 +9,16 @@ class MedicationTypeField extends StatefulWidget {
     required this.selectedKey,
     required this.onChanged,
     this.isLoading = false,
+    this.decoratedPrefixIcon = false,
+    this.prefixColor,
   });
 
   final List<MedicationCategory> categories;
   final MedicationCategoryKey? selectedKey;
   final ValueChanged<MedicationCategoryKey?> onChanged;
   final bool isLoading;
+  final bool decoratedPrefixIcon;
+  final Color? prefixColor;
 
   @override
   State<MedicationTypeField> createState() => _MedicationTypeFieldState();
@@ -44,9 +48,14 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
       duration: const Duration(milliseconds: 180),
       reverseDuration: const Duration(milliseconds: 150),
     );
-    final curve = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
+    final curve = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
     _fade = curve;
-    _slide = Tween<Offset>(begin: const Offset(0, -0.02), end: Offset.zero).animate(curve);
+    _slide = Tween<Offset>(begin: const Offset(0, -0.02), end: Offset.zero)
+        .animate(curve);
   }
 
   @override
@@ -76,7 +85,6 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
                   c.keywords.any((k) => k.toLowerCase().contains(q)))
               .toList();
     });
-    // Rebuild the overlay to reflect filtered results instantly
     _entry?.markNeedsBuild();
   }
 
@@ -92,7 +100,6 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    // Measure target size to match overlay width and vertical offset
     final contextObj = _fieldKey.currentContext;
     if (contextObj != null) {
       final box = contextObj.findRenderObject() as RenderBox;
@@ -104,14 +111,14 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
       builder: (context) {
         return Stack(
           children: [
-            // Tap outside to dismiss
             Positioned.fill(
               child: GestureDetector(onTap: _removeOverlay),
             ),
             CompositedTransformFollower(
               link: _link,
               showWhenUnlinked: false,
-              offset: Offset(0, (_targetSize.height == 0 ? 56 : _targetSize.height) + 8),
+              offset:
+                  Offset(0, (_targetSize.height == 0 ? 56 : _targetSize.height) + 8),
               child: Material(
                 color: Colors.transparent,
                 child: SizedBox(
@@ -167,22 +174,18 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
                             ),
                             Flexible(
                               child: ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxHeight: 320),
+                                constraints: const BoxConstraints(maxHeight: 320),
                                 child: ListView.builder(
                                   padding: const EdgeInsets.only(
                                       left: 8, right: 8, bottom: 8),
                                   itemCount: _filtered.length,
                                   itemBuilder: (context, index) {
                                     final c = _filtered[index];
-                                    final selected =
-                                        c.key == widget.selectedKey;
+                                    final selected = c.key == widget.selectedKey;
                                     return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 6),
+                                      padding: const EdgeInsets.only(bottom: 6),
                                       child: InkWell(
-                                        borderRadius:
-                                            BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(12),
                                         onTap: () {
                                           widget.onChanged(c.key);
                                           _removeOverlay();
@@ -192,16 +195,13 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
                                               horizontal: 12, vertical: 12),
                                           decoration: BoxDecoration(
                                             color: selected
-                                                ? cs.primary
-                                                    .withOpacity(0.10)
+                                                ? cs.primary.withOpacity(0.10)
                                                 : Colors.transparent,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: Row(
                                             children: [
-                                              Icon(_iconFor(c.key),
-                                                  color: cs.primary),
+                                              Icon(_iconFor(c.key), color: cs.primary),
                                               const SizedBox(width: 12),
                                               Expanded(
                                                 child: Text(
@@ -212,10 +212,8 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
                                                         : FontWeight.w500,
                                                     color: selected
                                                         ? cs.primary
-                                                        : theme
-                                                            .textTheme
-                                                            .bodyMedium
-                                                            ?.color,
+                                                        : theme.textTheme
+                                                            .bodyMedium?.color,
                                                   ),
                                                 ),
                                               ),
@@ -287,6 +285,7 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
+    // 1) LOADING STATE — burada selectedLabel KULLANMAYIN
     if (widget.isLoading && widget.categories.isEmpty) {
       return InputDecorator(
         decoration: InputDecoration(
@@ -299,7 +298,18 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
           ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          prefixIcon: const Icon(Icons.category_outlined),
+          prefixIcon: widget.decoratedPrefixIcon
+              ? Padding(
+                  padding: const EdgeInsets.only(left: 8, right: 8),
+                  child: Icon(
+                    Icons.category_outlined,
+                    size: 18,
+                    color: widget.prefixColor ?? cs.tertiary,
+                  ),
+                )
+              : const Icon(Icons.category_outlined),
+          prefixIconConstraints:
+              const BoxConstraints(minWidth: 0, minHeight: 0),
           isDense: true,
         ),
         child: const SizedBox(
@@ -309,6 +319,7 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
       );
     }
 
+    // 2) NORMAL STATE — selectedLabel burada hesaplanır
     final selectedLabel = widget.categories
         .firstWhere(
           (c) => c.key == widget.selectedKey,
@@ -346,7 +357,18 @@ class _MedicationTypeFieldState extends State<MedicationTypeField>
             ),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            prefixIcon: const Icon(Icons.category_outlined),
+            prefixIcon: widget.decoratedPrefixIcon
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 8, right: 8),
+                    child: Icon(
+                      Icons.category_outlined,
+                      size: 18,
+                      color: widget.prefixColor ?? cs.tertiary,
+                    ),
+                  )
+                : const Icon(Icons.category_outlined),
+            prefixIconConstraints:
+                const BoxConstraints(minWidth: 0, minHeight: 0),
             suffixIcon: const Icon(Icons.arrow_drop_down),
           ),
           child: Text(

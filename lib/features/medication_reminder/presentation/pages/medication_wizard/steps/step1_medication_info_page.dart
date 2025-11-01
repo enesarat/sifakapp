@@ -75,7 +75,23 @@ class _Step1MedicationInfoPageState extends State<Step1MedicationInfoPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    return Scaffold(
+    final localTheme = theme.copyWith(
+      colorScheme: cs.copyWith(primary: WizardPalette.primary),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: WizardPalette.primary,
+        selectionColor: WizardPalette.primary.withOpacity(0.28),
+        selectionHandleColor: WizardPalette.primary,
+      ),
+      inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(width: 2, color: WizardPalette.primary),
+        ),
+      ),
+    );
+    return Theme(
+      data: localTheme,
+      child: Scaffold(
       backgroundColor: cs.surface,
       appBar: AppBar(
         leading: IconButton(
@@ -113,6 +129,8 @@ class _Step1MedicationInfoPageState extends State<Step1MedicationInfoPage> {
                   MedicationNameField(
                     controller: _wiz.nameController,
                     validator: Validator.validateMedicationName,
+                    decoratedPrefixIcon: true,
+                    prefixColor: WizardPalette.primary,
                     onManuallyEdited: () {
                       setState(() {
                         _wiz.setCategory(null);
@@ -135,6 +153,8 @@ class _Step1MedicationInfoPageState extends State<Step1MedicationInfoPage> {
                   MedicationDiagnosisField(
                     controller: _wiz.diagnosisController,
                     validator: Validator.validateDiagnosis,
+                    decoratedPrefixIcon: true,
+                    prefixColor: WizardPalette.secondary,
                   ),
                   const SizedBox(height: 12),
                   Column(
@@ -144,6 +164,8 @@ class _Step1MedicationInfoPageState extends State<Step1MedicationInfoPage> {
                         categories: _categories,
                         selectedKey: _wiz.selectedCategoryKey,
                         isLoading: _isCategoryLoading,
+                        decoratedPrefixIcon: true,
+                        prefixColor: WizardPalette.tertiary,
                         onChanged: (key) => setState(() {
                           _wiz.setCategory(key);
                           _typeError = null;
@@ -194,7 +216,6 @@ class _Step1MedicationInfoPageState extends State<Step1MedicationInfoPage> {
           ],
         ),
       ),
-    );
+    ));
   }
 }
-

@@ -7,39 +7,69 @@ class MedicationMealInfo extends StatelessWidget {
     required this.onChanged,
     required this.hoursBeforeOrAfterMeal,
     required this.onSliderChanged,
+    this.accentColor,
   });
 
   final bool isAfterMeal;
   final ValueChanged<bool> onChanged;
   final int hoursBeforeOrAfterMeal;
   final ValueChanged<double> onSliderChanged;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final accent = accentColor ?? cs.primary;
 
-    Widget pill(String text, bool selected, VoidCallback onTap) => Expanded(
+    Widget pill({
+      required IconData icon,
+      required String text,
+      required bool selected,
+      required VoidCallback onTap,
+    }) => Expanded(
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(26),
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: selected
-                    ? (theme.brightness == Brightness.light
-                        ? Colors.white
-                        : cs.surfaceVariant)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                text,
-                style: TextStyle(
-                  color: selected ? cs.primary : cs.onSurface.withOpacity(0.6),
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ? accent
+                    : (theme.brightness == Brightness.light ? Colors.white : cs.surface),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: selected ? Colors.transparent : cs.outlineVariant,
                 ),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: accent.withOpacity(0.25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 18, color: selected ? Colors.white : cs.onSurface),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      softWrap: true,
+                      style: TextStyle(
+                        color: selected ? Colors.white : cs.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -49,26 +79,29 @@ class MedicationMealInfo extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Yemek Bilgisi',
+          'Yemekle İlişkisi',
           style: theme.textTheme.labelLarge?.copyWith(
             color: cs.onSurfaceVariant,
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: cs.surfaceVariant.withOpacity(0.6),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              pill('Yemekten Sonra', isAfterMeal, () => onChanged(true)),
-              const SizedBox(width: 6),
-              pill('Yemekten Önce', !isAfterMeal, () => onChanged(false)),
-            ],
-          ),
+        Row(
+          children: [
+            pill(
+              icon: Icons.restaurant,
+              text: 'Yemekten Sonra',
+              selected: isAfterMeal,
+              onTap: () => onChanged(true),
+            ),
+            const SizedBox(width: 8),
+            pill(
+              icon: Icons.no_food,
+              text: 'Aç Karnına',
+              selected: !isAfterMeal,
+              onTap: () => onChanged(false),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         Row(
@@ -77,7 +110,7 @@ class MedicationMealInfo extends StatelessWidget {
             Text('Kaç saat ${isAfterMeal ? 'sonra' : 'önce'}?'),
             Text(
               '$hoursBeforeOrAfterMeal',
-              style: TextStyle(color: cs.primary, fontWeight: FontWeight.w700),
+              style: TextStyle(color: accent, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -88,10 +121,14 @@ class MedicationMealInfo extends StatelessWidget {
           max: 3,
           divisions: 3,
           label: '$hoursBeforeOrAfterMeal saat',
+          activeColor: accent,
+          thumbColor: accent,
           onChanged: onSliderChanged,
         ),
       ],
     );
   }
 }
+
+
 

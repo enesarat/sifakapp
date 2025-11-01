@@ -68,6 +68,36 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
       initialDate: initial,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),
+      builder: (ctx, child) {
+        final base = Theme.of(ctx);
+        final accent = WizardPalette.primary;
+        final purple = base.copyWith(
+          colorScheme: base.colorScheme.copyWith(primary: accent),
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: accent,
+            selectionColor: accent.withOpacity(0.28),
+            selectionHandleColor: accent,
+          ),
+          inputDecorationTheme: base.inputDecorationTheme.copyWith(
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(width: 2, color: accent),
+            ),
+          ),
+          datePickerTheme: base.datePickerTheme.copyWith(
+            headerForegroundColor: accent,
+            dividerColor: accent,
+          ),
+          timePickerTheme: base.timePickerTheme.copyWith(
+            hourMinuteTextColor: accent,
+            dayPeriodTextColor: accent,
+            dialHandColor: accent,
+            hourMinuteColor: accent.withOpacity(0.12),
+            dayPeriodColor: accent.withOpacity(0.12),
+          ),
+        );
+        return Theme(data: purple, child: child!);
+      },
     );
     if (picked != null && mounted) {
       setState(() {
@@ -90,6 +120,36 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
       initialDate: initial,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 10),
+      builder: (ctx, child) {
+        final base = Theme.of(ctx);
+        final accent = WizardPalette.primary;
+        final purple = base.copyWith(
+          colorScheme: base.colorScheme.copyWith(primary: accent),
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: accent,
+            selectionColor: accent.withOpacity(0.28),
+            selectionHandleColor: accent,
+          ),
+          inputDecorationTheme: base.inputDecorationTheme.copyWith(
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(width: 2, color: accent),
+            ),
+          ),
+          datePickerTheme: base.datePickerTheme.copyWith(
+            headerForegroundColor: accent,
+            dividerColor: accent,
+          ),
+          timePickerTheme: base.timePickerTheme.copyWith(
+            hourMinuteTextColor: accent,
+            dayPeriodTextColor: accent,
+            dialHandColor: accent,
+            hourMinuteColor: accent.withOpacity(0.12),
+            dayPeriodColor: accent.withOpacity(0.12),
+          ),
+        );
+        return Theme(data: purple, child: child!);
+      },
     );
     if (picked != null && mounted) setState(() => _wiz!.setEndDate(picked));
   }
@@ -103,7 +163,36 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
     final current = (_wiz!.manualTimes.length > index)
         ? _wiz!.manualTimes[index]
         : suggested;
-    final picked = await showTimePicker(context: context, initialTime: current);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: current,
+      builder: (ctx, child) {
+        final base = Theme.of(ctx);
+        final accent = WizardPalette.primary;
+        final purple = base.copyWith(
+          colorScheme: base.colorScheme.copyWith(primary: accent),
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: accent,
+            selectionColor: accent.withOpacity(0.28),
+            selectionHandleColor: accent,
+          ),
+          inputDecorationTheme: base.inputDecorationTheme.copyWith(
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(width: 2, color: accent),
+            ),
+          ),
+          timePickerTheme: base.timePickerTheme.copyWith(
+            hourMinuteTextColor: accent,
+            dayPeriodTextColor: accent,
+            dialHandColor: accent,
+            hourMinuteColor: accent.withOpacity(0.12),
+            dayPeriodColor: accent.withOpacity(0.12),
+          ),
+        );
+        return Theme(data: purple, child: child!);
+      },
+    );
     if (picked != null && mounted) setState(() => _wiz!.setManualTime(index, picked));
   }
 
@@ -168,12 +257,22 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const WizardProgressHeader(activeStep: 2),
+      body: Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme.copyWith(primary: WizardPalette.primary),
+          inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(width: 2, color: WizardPalette.primary),
+            ),
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const WizardProgressHeader(activeStep: 2),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -224,7 +323,7 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
                       Text(_wiz!.dailyDosage.toString(), style: TextStyle(color: accent, fontWeight: FontWeight.w700)),
                     ],
                   ),
-                  Slider(value: _wiz!.dailyDosage.toDouble(), min: 1, max: 10, divisions: 9, activeColor: accent, thumbColor: accent,
+                  Slider(value: _wiz!.dailyDosage.toDouble(), min: 1, max: 10, divisions: 9, activeColor: accent, thumbColor: accent, inactiveColor: accent.withOpacity(0.24),
                     onChanged: (v) => setState(() => _wiz!.setDailyDosage(v.toInt())),
                   ),
                   const SizedBox(height: 8),
@@ -244,6 +343,9 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
                             label: Text(t.format(context)),
                             backgroundColor: accent.withOpacity(0.12),
                             labelStyle: TextStyle(color: accent),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(26),
+                            ),
                           ),
                       ],
                     ),
@@ -254,6 +356,9 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
                       dailyDosage: _wiz!.dailyDosage,
                       validator: (times) => Validator.validateManualTime(
                           times, _wiz!.dailyDosage, true),
+                      chipStyle: true,
+                      accentColor: accent,
+                      chipRadius: 26,
                     ),
                   ],
                 ],
@@ -314,7 +419,7 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
                               const Text('Gün Sayısı'),
                               Text('${_wiz!.autoDaysPerWeek}',
                                   style: TextStyle(
-                                      color: theme.colorScheme.primary,
+                                      color: accent,
                                       fontWeight: FontWeight.w700)),
                             ],
                           ),
@@ -323,6 +428,9 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
                             min: 1,
                             max: 6,
                             divisions: 5,
+                            activeColor: accent,
+                            thumbColor: accent,
+                            inactiveColor: accent.withOpacity(0.24),
                             onChanged: (v) => setState(() {
                               _wiz!.setAutoDaysPerWeek(v.toInt());
                               _wiz!.autoPreviewDays = previewAutomaticUsageDays(
@@ -351,6 +459,9 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
                                   backgroundColor: accent.withOpacity(0.12),
                                   labelStyle:
                                       TextStyle(color: accent),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(26),
+                                  ),
                                 ),
                             ],
                           ),
@@ -358,17 +469,35 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
                       )
                     : MedicationUsageDaysPicker(
                         selectedDays: _wiz!.usageDays,
-                        onChanged: (days) => setState(() => _wiz!.setUsageDays(days)),
+                        onChanged: (days) {
+                          setState(() {
+                            _wiz!.setUsageDays(days);
+                            if (days.length >= 7) {
+                              _wiz!.setEveryDay(true);
+                              _wiz!.setUsageDays(const []);
+                              _wiz!.autoPreviewDays = previewAutomaticUsageDays(
+                                isEveryDay: _wiz!.isEveryDay,
+                                isAutomaticDayMode:
+                                    _wiz!.dayScheduleMode == ScheduleMode.automatic,
+                                autoDaysPerWeek: _wiz!.autoDaysPerWeek,
+                                startWeekday: _wiz!.startDate.weekday,
+                              );
+                            }
+                          });
+                        },
                         validator: (days) => Validator.validateUsageDays(
                           isEveryDay: _wiz!.isEveryDay,
                           isManualDayMode: true,
                           selectedDays: days,
                         ),
+                        accentColor: accent,
+                        borderRadius: 26,
                       ),
               ),
             ],
             const SizedBox(height: 16),
           ],
+        ),
         ),
       ),
     );
