@@ -9,9 +9,13 @@ import 'package:sifakapp/core/ui/spacing.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication_category.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/get_all_medications.dart';
+import '../../widgets/floating_nav_bar.dart';
+import '../../widgets/glass_floating_nav_bar.dart';
 
 class MissedDosesPage extends StatefulWidget {
-  const MissedDosesPage({super.key});
+  const MissedDosesPage({super.key, this.fromNotification = false});
+
+  final bool fromNotification;
 
   @override
   State<MissedDosesPage> createState() => _MissedDosesPageState();
@@ -163,7 +167,9 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
           ? const Center(child: CircularProgressIndicator())
           : (_totalMissed == 0)
               ? _EmptyState(
-                  onClose: () => context.go(const HomeRoute().location),
+                  onClose: widget.fromNotification
+                      ? () => context.go(const HomeRoute().location)
+                      : null,
                 )
               : SafeArea(
                   bottom: false,
@@ -199,31 +205,36 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
                     ),
                   ),
                 ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: AppSpacing.pageInsets(
-            context: context,
-            top: 8,
-            bottom: 16,
-          ),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: pal.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(26),
+      bottomNavigationBar: widget.fromNotification
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: AppSpacing.pageInsets(
+                  context: context,
+                  top: 8,
+                  bottom: 16,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: pal.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                    ),
+                    onPressed: () => context.go(const HomeRoute().location),
+                    icon: const Icon(Icons.home),
+                    label: const Text('Ana Sayfa'),
+                  ),
                 ),
               ),
-              onPressed: () => context.go(const HomeRoute().location),
-              icon: const Icon(Icons.home),
-              label: const Text('Ana Sayfa'),
+            )
+          : const SafeArea(
+              minimum: EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: GlassFloatingNavBar(selected: NavTab.history),
             ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -415,8 +426,8 @@ class _MissedCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onClose});
-  final VoidCallback onClose;
+  const _EmptyState({this.onClose});
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -450,11 +461,13 @@ class _EmptyState extends StatelessWidget {
             'Son 24 saatte kaçırılan doz bulunmuyor. Böyle devam et!',
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
-          TextButton(
-            onPressed: onClose,
-            child: const Text('Kapat / Anasayfa'),
-          ),
+          if (onClose != null) ...[
+            const SizedBox(height: 24),
+            TextButton(
+              onPressed: onClose,
+              child: const Text('Kapat / Anasayfa'),
+            ),
+          ],
         ],
       ),
     );

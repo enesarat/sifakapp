@@ -1,5 +1,6 @@
 class AppRoutePaths {
   static const String home = '/';
+  static const String plans = '/plans';
 
   // Medication
   static const String medicationsNew = '/medications/new';

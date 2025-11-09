@@ -81,7 +81,7 @@ Future<void> main() async {
         if (parsed == null) return;
         final type = parsed['type'];
         if (type == 'missed_dose') {
-          ctx?.go(const MissedDosesRoute().location);
+          ctx?.go('${const MissedDosesRoute().location}?src=notif');
         } else if (type == 'take_dose') {
           final medId = parsed['medId'];
           if (medId is String && medId.isNotEmpty) {
@@ -134,7 +134,7 @@ class _MyAppState extends State<MyApp> {
       if (parsed == null) return;
       final type = parsed['type'];
       if (type == 'missed_dose') {
-        ctx.go(const MissedDosesRoute().location);
+        ctx.go('${const MissedDosesRoute().location}?src=notif');
       } else if (type == 'take_dose') {
         final medId = parsed['medId'];
         if (medId is String && medId.isNotEmpty) {

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'widgets/medication_list_appbar.dart';
 import 'widgets/medication_list_body.dart';
-import 'widgets/add_medication_fab.dart';
+import '../../widgets/floating_nav_bar.dart';
+import '../../widgets/glass_floating_nav_bar.dart';
 
 class MedicationListPage extends StatelessWidget {
   const MedicationListPage({super.key});
@@ -13,7 +14,10 @@ class MedicationListPage extends StatelessWidget {
       backgroundColor: cs.surface,
       appBar: const MedicationListAppBar(),
       body: const MedicationListBody(),
-      floatingActionButton: const AddMedicationFab(),
+      bottomNavigationBar: const SafeArea(
+        minimum: EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: GlassFloatingNavBar(selected: NavTab.plans),
+      ),
     );
   }
 }

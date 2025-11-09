@@ -15,6 +15,7 @@ import 'package:sifakapp/features/medication_reminder/presentation/pages/medicat
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_wizard/steps/step3_reminder_page.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_wizard/medication_wizard_state.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/medication_list_page.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/pages/dashboard/medication_dashboard_page.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/medication_details_dialog.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/confirm_delete_medication_dialog.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/delete_medication_dialog.dart';
@@ -25,6 +26,15 @@ part 'app_routes.g.dart';
 @TypedGoRoute<HomeRoute>(path: AppRoutePaths.home)
 class HomeRoute extends GoRouteData {
   const HomeRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const MedicationDashboardPage();
+}
+
+@TypedGoRoute<PlansRoute>(path: AppRoutePaths.plans)
+class PlansRoute extends GoRouteData {
+  const PlansRoute();
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
@@ -137,8 +147,11 @@ class MissedDosesRoute extends GoRouteData {
   const MissedDosesRoute();
 
   @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      const MissedDosesPage();
+  Widget build(BuildContext context, GoRouterState state) {
+    final src = state.uri.queryParameters['src'];
+    final fromNotif = src == 'notif';
+    return MissedDosesPage(fromNotification: fromNotif);
+  }
 }
 
 @TypedGoRoute<MedicationDetailsDialogRoute>(path: AppRoutePaths.medicationDetails)
