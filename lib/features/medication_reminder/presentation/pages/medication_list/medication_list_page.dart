@@ -13,10 +13,21 @@ class MedicationListPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: cs.surface,
       appBar: const MedicationListAppBar(),
-      body: const MedicationListBody(),
-      bottomNavigationBar: const SafeArea(
-        minimum: EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: GlassFloatingNavBar(selected: NavTab.plans),
+      body: Stack(
+        children: const [
+          Positioned.fill(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: 110),
+              child: MedicationListBody(),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: GlassFloatingNavBar(selected: NavTab.plans),
+          ),
+        ],
       ),
     );
   }

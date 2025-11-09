@@ -171,39 +171,53 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
                       ? () => context.go(const HomeRoute().location)
                       : null,
                 )
-              : SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: AppSpacing.pageInsets(
-                      context: context,
-                      top: 16,
-                      bottom: 0,
-                    ),
-                    child: ListView(
-                      children: [
-                        if (_showInfo)
-                          _InfoBanner(
-                            onClose: () {
-                              setState(() {
-                                _showInfo = false;
-                              });
-                            },
+              : Stack(
+                  children: [
+                    // Content with bottom padding to avoid overlap
+                    Positioned.fill(
+                      child: SafeArea(
+                        bottom: false,
+                        child: Padding(
+                          padding: AppSpacing.pageInsets(
+                            context: context,
+                            top: 16,
+                            bottom: 110,
                           ),
-                        const SizedBox(height: 12),
-                        ..._entries.map(
-                          (e) => _MissedCard(
-                            med: e.medication,
-                            time: e.at,
-                            icon: _iconForMedication(e.medication),
-                            pal: pal,
-                            labelBuilder: (dt) =>
-                                "${_relativeLabel(dt)} ${_fmtTime(dt)}'da kaçırıldı",
+                          child: ListView(
+                            children: [
+                              if (_showInfo)
+                                _InfoBanner(
+                                  onClose: () {
+                                    setState(() {
+                                      _showInfo = false;
+                                    });
+                                  },
+                                ),
+                              const SizedBox(height: 12),
+                              ..._entries.map(
+                                (e) => _MissedCard(
+                                  med: e.medication,
+                                  time: e.at,
+                                  icon: _iconForMedication(e.medication),
+                                  pal: pal,
+                                  labelBuilder: (dt) =>
+                                      "${_relativeLabel(dt)} ${_fmtTime(dt)}'da kaçırıldı",
+                                ),
+                              ),
+                              const SizedBox(height: 80),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 80),
-                      ],
+                      ),
                     ),
-                  ),
+                    if (!widget.fromNotification)
+                      const Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 16,
+                        child: GlassFloatingNavBar(selected: NavTab.history),
+                      ),
+                  ],
                 ),
       bottomNavigationBar: widget.fromNotification
           ? SafeArea(
@@ -231,10 +245,7 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
                 ),
               ),
             )
-          : const SafeArea(
-              minimum: EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: GlassFloatingNavBar(selected: NavTab.history),
-            ),
+          : null,
     );
   }
 }

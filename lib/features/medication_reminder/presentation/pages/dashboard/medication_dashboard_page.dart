@@ -171,6 +171,7 @@ class _MedicationDashboardPageState extends State<MedicationDashboardPage> {
               ],
             ),
           ),
+          // Floating nav bar without SafeArea; positioned with margins
           const Positioned(
             left: 16,
             right: 16,
