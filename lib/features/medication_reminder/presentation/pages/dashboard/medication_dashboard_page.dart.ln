@@ -1,0 +1,466 @@
+   1: import 'dart:math' as math;
+   2: 
+   3: import 'package:flutter/material.dart';
+   4: import 'dart:ui' show ImageFilter;
+   5: import 'package:flutter_bloc/flutter_bloc.dart';
+   6: import 'package:get_it/get_it.dart';
+   7: import 'package:go_router/go_router.dart';
+   8: 
+   9: import '../../../../../../core/navigation/app_routes.dart';
+  10: import '../../../../../../core/navigation/app_route_paths.dart';
+  11: import '../../../application/plan/plan_builder.dart';
+  12: import '../../../domain/entities/medication.dart';
+  13: import '../../../domain/entities/medication_category.dart';
+  14: import '../../../domain/use_cases/catalog/get_all_medication_categories.dart';
+  15: import '../../blocs/medication/medication_bloc.dart';
+  16: import '../../blocs/medication/medication_state.dart' as st;
+  17: import '../medication_list/widgets/medication_list_item.dart';
+  18: import '../../widgets/frosted_blob_background.dart';
+  19: import '../../widgets/floating_top_nav_bar.dart';
+  20: 
+  23: 
+  24:   @override
+  25:   State<MedicationDashboardPage> createState() => _MedicationDashboardPageState();
+  27: 
+  29:   final _getCats = GetIt.I<GetAllMedicationCategories>();
+  30:   List<MedicationCategory> _categories = const [];
+  31:   MedicationCategoryKey? _selectedKey;
+  32:   bool _loadingCats = true;
+  33: 
+  34:   @override
+  36:     super.initState();
+  37:     _loadCategories();
+  39: 
+  42:       final cats = await _getCats();
+  43:       if (!mounted) return;
+  45:         _categories = cats;
+  46:         _selectedKey = cats.isNotEmpty ? cats.first.key : null;
+  47:         _loadingCats = false;
+  50:       if (!mounted) return;
+  52:         _categories = const [];
+  53:         _selectedKey = null;
+  54:         _loadingCats = false;
+  58: 
+  59:   @override
+  61:     final cs = Theme.of(context).colorScheme;
+  62:     return Scaffold(
+  63:       backgroundColor: cs.surface,
+  64:       body: Stack(
+  65:         children: [
+  66:           const Positioned.fill(child: FrostedBlobBackground()),
+  67:           SafeArea(
+  68:             child: Column(
+  69:               crossAxisAlignment: CrossAxisAlignment.stretch,
+  70:               children: [
+  71:                 const SizedBox(height: 8),
+  72:                 const FloatingTopNavBar(title: 'Bugün'),
+  73:                 Padding(
+  74:                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+  75:                   child: Column(
+  76:                     crossAxisAlignment: CrossAxisAlignment.start,
+  77:                     children: [
+  78:                       Text('Merhaba!', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+  79:                       const SizedBox(height: 4),
+  80:                       Text('Bugüne ait ilaç planın.',
+  81:                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+  82:                                 color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.75),
+  83:                               )),
+  84:                     ],
+  85:                   ),
+  86:                 ),
+  87: 
+  88:                 // Progress Ring
+  89:                 Padding(
+  90:                   padding: const EdgeInsets.symmetric(vertical: 16),
+  91:                   child: Center(
+  92:                     child: _TodayProgressRing(),
+  93:                   ),
+  94:                 ),
+  95: 
+  96:                 // Category chips
+  97:                 Padding(
+  98:                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+  99:                   child: Text('Kategori', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+ 100:                 ),
+ 101:                 SizedBox(
+ 102:                   height: 44,
+ 103:                   child: _loadingCats
+ 104:                       ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+ 105:                       : ListView.separated(
+ 106:                           padding: const EdgeInsets.symmetric(horizontal: 16),
+ 107:                           scrollDirection: Axis.horizontal,
+ 109:                             final c = _categories[i];
+ 110:                             final selected = c.key == _selectedKey;
+ 111:                             final isLight = Theme.of(context).brightness == Brightness.light;
+ 112:                             final bg = isLight
+ 113:                                 ? Colors.white.withOpacity(0.55)
+ 114:                                 : Theme.of(context).colorScheme.surface.withOpacity(0.50);
+ 115:                             final borderColor = selected
+ 116:                                 ? Theme.of(context).colorScheme.primary
+ 117:                                 : Colors.white.withOpacity(isLight ? 0.25 : 0.12);
+ 118:                             return GestureDetector(
+ 119:                               onTap: () => setState(() => _selectedKey = c.key),
+ 120:                               child: Container(
+ 121:                                 padding: const EdgeInsets.symmetric(horizontal: 12),
+ 122:                                 decoration: BoxDecoration(
+ 123:                                   color: bg,
+ 124:                                   borderRadius: BorderRadius.circular(999),
+ 125:                                   border: Border.all(color: selected ? borderColor : Colors.transparent),
+ 126:                                 ),
+ 127:                                 child: Row(
+ 128:                                   children: [
+ 129:                                     Icon(_iconForCategory(c.key), color: Theme.of(context).iconTheme.color, size: 18),
+ 130:                                     const SizedBox(width: 6),
+ 131:                                     Text(
+ 132:                                       c.label.split('(').first.trim(),
+ 133:                                       style: TextStyle(
+ 134:                                         fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+ 135:                                         color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).textTheme.bodyMedium?.color,
+ 136:                                       ),
+ 137:                                     ),
+ 138:                                   ],
+ 139:                                 ),
+ 140:                               ),
+ 141:                             );
+ 143:                           separatorBuilder: (_, __) => const SizedBox(width: 8),
+ 144:                           itemCount: _categories.length,
+ 145:                         ),
+ 146:                 ),
+ 147: 
+ 148:                 // Upcoming dose / Plans list
+ 149:                 Padding(
+ 150:                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+ 151:                   child: Text('Planlar', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+ 152:                 ),
+ 153:                 _UpcomingDoseList(selectedKey: _selectedKey),
+ 154:                 const SizedBox(height: 100),
+ 155:               ],
+ 156:             ),
+ 157:           ),
+ 158:           // Floating nav bar without SafeArea; positioned with margins
+ 159:           const Positioned(
+ 160:             left: 16,
+ 161:             right: 16,
+ 162:             bottom: 16,
+ 163:             child: _DashboardBottomBar(),
+ 164:           ),
+ 165:         ],
+ 166:       ),
+ 167:     );
+ 170: 
+ 172:   const _TodayProgressRing();
+ 173: 
+ 174:   @override
+ 176:     return BlocBuilder<MedicationBloc, st.MedicationState>(
+ 178:         int planned = 0;
+ 179:         int taken = 0; // TODO: daily taken tracking can populate this
+ 180: 
+ 182:           final today = DateTime.now();
+ 184:             if (!_shouldTakeOn(m, today)) continue;
+ 185:             final times = _plannedTimesCountFor(m);
+ 186:             planned += times;
+ 189: 
+ 190:         final pct = planned == 0 ? 0.0 : (taken / planned).clamp(0.0, 1.0);
+ 191: 
+ 192:         return _ProgressRing(
+ 193:           progress: pct,
+ 194:           size: 188,
+ 195:           stroke: 14,
+ 196:           center: Column(
+ 197:             mainAxisSize: MainAxisSize.min,
+ 198:             children: [
+ 200:               const SizedBox(height: 4),
+ 201:               Text('$taken / $planned Alındı', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
+ 202:             ],
+ 203:           ),
+ 204:         );
+ 206:     );
+ 208: 
+ 210:     if (m.isEveryDay) return true;
+ 211:     final days = m.usageDays ?? const <int>[];
+ 212:     return days.contains(date.weekday);
+ 214: 
+ 217:       return m.reminderTimes!.length;
+ 219:     return m.dailyDosage;
+ 222: 
+ 225:   final double progress; // 0..1
+ 226:   final double size;
+ 227:   final double stroke;
+ 228:   final Widget center;
+ 229: 
+ 230:   @override
+ 232:     final cs = Theme.of(context).colorScheme;
+ 233:     return SizedBox(
+ 234:       width: size,
+ 235:       height: size,
+ 236:       child: Stack(
+ 237:         alignment: Alignment.center,
+ 238:         children: [
+ 239:           CustomPaint(
+ 240:             size: Size.square(size),
+ 241:             painter: _RingPainter(
+ 242:               progress: progress,
+ 243:               stroke: stroke,
+ 244:               background: Theme.of(context).brightness == Brightness.light
+ 245:                   ? Colors.white.withOpacity(0.4)
+ 246:                   : cs.surfaceVariant.withOpacity(0.4),
+ 247:               color: cs.primary,
+ 248:             ),
+ 249:           ),
+ 250:           center,
+ 251:         ],
+ 252:       ),
+ 253:     );
+ 256: 
+ 258:   final double progress;
+ 259:   final double stroke;
+ 260:   final Color background;
+ 261:   final Color color;
+ 262: 
+ 264: 
+ 265:   @override
+ 267:     final rect = Offset.zero & size;
+ 268:     final center = rect.center;
+ 269:     final radius = size.shortestSide / 2 - stroke / 2;
+ 270: 
+ 271:     final bgPaint = Paint()
+ 272:       ..style = PaintingStyle.stroke
+ 273:       ..strokeWidth = stroke
+ 274:       ..strokeCap = StrokeCap.round
+ 275:       ..color = background;
+ 276:     canvas.drawCircle(center, radius, bgPaint);
+ 277: 
+ 278:     final sweep = 2 * math.pi * progress;
+ 279:     final start = -math.pi / 2; // 12 o'clock
+ 280:     final fgPaint = Paint()
+ 281:       ..style = PaintingStyle.stroke
+ 282:       ..strokeWidth = stroke
+ 283:       ..strokeCap = StrokeCap.round
+ 284:       ..color = color;
+ 285:     canvas.drawArc(Rect.fromCircle(center: center, radius: radius), start, sweep, false, fgPaint);
+ 287: 
+ 288:   @override
+ 290:     return oldDelegate.progress != progress || oldDelegate.stroke != stroke || oldDelegate.color != color || oldDelegate.background != background;
+ 293: 
+ 296:   final MedicationCategoryKey? selectedKey;
+ 297: 
+ 298:   @override
+ 302:         return const SizedBox.shrink();
+ 304: 
+ 305:       final now = DateTime.now();
+ 306:       final meds = state.medications.where((m) => _deriveCategoryKeyFromType(m.type) == selectedKey).toList();
+ 307: 
+ 309:         final plan = PlanBuilder.buildOneOffHorizon(m, from: now, to: now.add(const Duration(days: 14)));
+ 310:         if (plan.oneOffs.isEmpty) return null;
+ 311:         return plan.oneOffs.first.scheduledAt;
+ 313: 
+ 315:         final na = nextFor(a);
+ 316:         final nb = nextFor(b);
+ 317:         if (na == null && nb == null) return 0;
+ 318:         if (na == null) return 1;
+ 319:         if (nb == null) return -1;
+ 320:         return na.compareTo(nb);
+ 322: 
+ 323:       final med = meds.isNotEmpty ? meds.first : null;
+ 325:         return Padding(
+ 326:           padding: const EdgeInsets.symmetric(horizontal: 16),
+ 327:           child: Text('Bu kategoride planlı bir doz bulunamadı.',
+ 328:               style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7))),
+ 329:         );
+ 331: 
+ 332:       return Padding(
+ 333:         padding: const EdgeInsets.symmetric(horizontal: 4),
+ 334:         child: MedicationListItem(med: med),
+ 335:       );
+ 339: 
+ 340: // New horizontally scrollable list of upcoming plans for the selected category
+ 343:   final MedicationCategoryKey? selectedKey;
+ 344: 
+ 345:   @override
+ 348:       if (selectedKey == null) return const SizedBox.shrink();
+ 349:       if (state is! st.MedicationLoaded) return const SizedBox.shrink();
+ 350: 
+ 351:       final now = DateTime.now();
+ 352:       final loaded = state as st.MedicationLoaded;
+ 353:       final meds = loaded.medications.where((m) => _deriveCategoryKeyFromType(m.type) == selectedKey).toList();
+ 354: 
+ 356:         final plan = PlanBuilder.buildOneOffHorizon(m, from: now, to: now.add(const Duration(days: 14)));
+ 357:         if (plan.oneOffs.isEmpty) return null;
+ 358:         return plan.oneOffs.first.scheduledAt;
+ 360: 
+ 361:       // Sort meds by closest upcoming occurrence
+ 363:         final na = nextFor(a);
+ 364:         final nb = nextFor(b);
+ 365:         if (na == null && nb == null) return 0;
+ 366:         if (na == null) return 1;
+ 367:         if (nb == null) return -1;
+ 368:         return na.compareTo(nb);
+ 370: 
+ 372:         return Padding(
+ 373:           padding: const EdgeInsets.symmetric(horizontal: 16),
+ 374:           child: Text(
+ 375:             'Bu kategoride planlı bir doz bulunamadı.',
+ 376:             style: Theme.of(context)
+ 377:                 .textTheme
+ 378:                 .bodyMedium
+ 379:                 ?.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+ 380:           ),
+ 381:         );
+ 383: 
+ 384:       final screenWidth = MediaQuery.of(context).size.width;
+ 385:       final itemWidth = screenWidth - 32; // align to page padding
+ 386: 
+ 387:       return Padding(
+ 388:         padding: const EdgeInsets.only(bottom: 8),
+ 389:         child: SingleChildScrollView(
+ 390:           scrollDirection: Axis.horizontal,
+ 391:           padding: const EdgeInsets.symmetric(horizontal: 4),
+ 392:           child: Row(
+ 393:             children: [
+ 394:               for (int i = 0; i < meds.length; i++) ...[
+ 395:                 SizedBox(width: itemWidth, child: MedicationListItem(med: meds[i])),
+ 396:                 if (i != meds.length - 1) const SizedBox(width: 8),
+ 397:               ]
+ 398:             ],
+ 399:           ),
+ 400:         ),
+ 401:       );
+ 405: 
+ 406: // Dashboard-specific bottom nav (glass style)
+ 408:   const _DashboardBottomBar();
+ 409: 
+ 410:   @override
+ 412:     final cs = Theme.of(context).colorScheme;
+ 413:     final isLight = Theme.of(context).brightness == Brightness.light;
+ 414:     final glass = isLight ? Colors.white.withOpacity(0.60) : cs.surface.withOpacity(0.60);
+ 415:     final borderColor = Colors.white.withOpacity(isLight ? 0.30 : 0.15);
+ 416: 
+ 417:     return SizedBox(
+ 418:       height: 96,
+ 419:       child: Stack(
+ 420:         alignment: Alignment.bottomCenter,
+ 421:         children: [
+ 422:           ClipRRect(
+ 423:             borderRadius: BorderRadius.circular(26),
+ 424:             child: BackdropFilter(
+ 425:               filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+ 426:               child: Container(
+ 427:                 height: 76,
+ 428:                 decoration: BoxDecoration(
+ 429:                   color: glass,
+ 430:                   borderRadius: BorderRadius.circular(26),
+ 431:                   border: Border.all(color: borderColor),
+ 432:                   boxShadow: [
+ 433:                     BoxShadow(
+ 434:                       color: cs.primary.withOpacity(0.18),
+ 435:                       blurRadius: 24,
+ 436:                       offset: const Offset(0, 10),
+ 437:                     ),
+ 438:                   ],
+ 439:                 ),
+ 440:                 padding: const EdgeInsets.symmetric(horizontal: 12),
+ 441:                 child: Row(
+ 442:                   mainAxisAlignment: MainAxisAlignment.spaceAround,
+ 443:                   children: [
+ 444:                     _DBNavItem(
+ 445:                       icon: Icons.home,
+ 446:                       label: 'Home',
+ 447:                       selected: true,
+ 448:                       onTap: () => const HomeRoute().go(context),
+ 449:                     ),
+ 450:                     _DBNavItem(
+ 451:                       icon: Icons.calendar_month,
+ 452:                       label: 'Plans',
+ 453:                       onTap: () => const PlansRoute().go(context),
+ 454:                     ),
+ 455:                     const SizedBox(width: 56),
+ 456:                     _DBNavItem(
+ 457:                       icon: Icons.history,
+ 458:                       label: 'History',
+ 459:                       onTap: () => const MissedDosesRoute().go(context),
+ 460:                     ),
+ 461:                     _DBNavItem(
+ 462:                       icon: Icons.medication_outlined,
+ 463:                       label: 'Dose',
+ 464:                       onTap: () => const PlansRoute().go(context),
+ 465:                     ),
+ 466:                   ],
+ 467:                 ),
+ 468:               ),
+ 469:             ),
+ 470:           ),
+ 471:           Positioned(
+ 472:             bottom: 30,
+ 473:             child: FloatingActionButton(
+ 474:               shape: const CircleBorder(),
+ 475:               onPressed: () => context.push(AppRoutePaths.medicationsNewStep1),
+ 476:               child: const Icon(Icons.add),
+ 477:             ),
+ 478:           ),
+ 479:         ],
+ 480:       ),
+ 481:     );
+ 484: 
+ 487:   final IconData icon;
+ 488:   final String label;
+ 489:   final VoidCallback? onTap;
+ 490:   final bool selected;
+ 491: 
+ 492:   @override
+ 494:     final cs = Theme.of(context).colorScheme;
+ 495:     final color = selected
+ 496:         ? cs.primary
+ 497:         : Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.85);
+ 498:     return InkWell(
+ 499:       borderRadius: BorderRadius.circular(12),
+ 500:       onTap: onTap,
+ 501:       child: Padding(
+ 502:         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+ 503:         child: Column(
+ 504:           mainAxisSize: MainAxisSize.min,
+ 505:           children: [
+ 506:             Icon(icon, color: color),
+ 507:             const SizedBox(height: 4),
+ 508:             Text(
+ 509:               label,
+ 510:               style: Theme.of(context)
+ 511:                   .textTheme
+ 512:                   .labelSmall
+ 513:                   ?.copyWith(color: color, fontWeight: selected ? FontWeight.w800 : FontWeight.w600),
+ 514:             ),
+ 515:           ],
+ 516:         ),
+ 517:       ),
+ 518:     );
+ 521: 
+ 522: // --- Helpers (kept aligned with DoseIntake mapping) ---
+ 525:     case MedicationCategoryKey.oralCapsule:
+ 526:       return Icons.medication_outlined;
+ 527:     case MedicationCategoryKey.topicalSemisolid:
+ 528:       return Icons.icecream_outlined;
+ 529:     case MedicationCategoryKey.parenteral:
+ 530:       return Icons.vaccines_outlined;
+ 531:     case MedicationCategoryKey.oralSyrup:
+ 532:       return Icons.medication_liquid_outlined;
+ 533:     case MedicationCategoryKey.oralSuspension:
+ 534:       return Icons.science_outlined;
+ 535:     case MedicationCategoryKey.oralDrops:
+ 536:       return Icons.water_drop_outlined;
+ 537:     case MedicationCategoryKey.oralSolution:
+ 538:       return Icons.bubble_chart_outlined;
+ 541: 
+ 543:   final v = value.trim();
+ 544:   final byKey = MedicationCategoryKey.fromValue(v);
+ 545:   if (byKey != null) return byKey;
+ 546: 
+ 547:   final t = v.toLowerCase();
+ 548:   bool containsAny(List<String> needles) => needles.any((n) => t.contains(n));
+ 549: 
+ 551:     return MedicationCategoryKey.oralCapsule;
+ 554:     return MedicationCategoryKey.topicalSemisolid;
+ 557:     return MedicationCategoryKey.parenteral;
+ 560:     return MedicationCategoryKey.oralSyrup;
+ 563:     return MedicationCategoryKey.oralSuspension;
+ 566:     return MedicationCategoryKey.oralDrops;
+ 569:     return MedicationCategoryKey.oralSolution;
+ 571:   return null;

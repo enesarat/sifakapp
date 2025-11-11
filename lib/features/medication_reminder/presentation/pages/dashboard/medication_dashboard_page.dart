@@ -145,12 +145,12 @@ class _MedicationDashboardPageState extends State<MedicationDashboardPage> {
                         ),
                 ),
 
-                // Upcoming dose
+                // Upcoming dose / Plans list
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  child: Text('Gelecek Doz', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  child: Text('Planlar', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                 ),
-                _UpcomingDoseCard(selectedKey: _selectedKey),
+                _UpcomingDoseList(selectedKey: _selectedKey),
                 const SizedBox(height: 100),
               ],
             ),
@@ -298,12 +298,12 @@ class _UpcomingDoseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<MedicationBloc, st.MedicationState>(builder: (context, state) {
-      if (state is! st.MedicationLoaded || selectedKey == null) {
-        return const SizedBox.shrink();
-      }
+      if (selectedKey == null) return const SizedBox.shrink();
+      if (state is! st.MedicationLoaded) return const SizedBox.shrink();
 
       final now = DateTime.now();
-      final meds = state.medications.where((m) => _deriveCategoryKeyFromType(m.type) == selectedKey).toList();
+      final loaded = state as st.MedicationLoaded;
+      final meds = loaded.medications.where((m) => _deriveCategoryKeyFromType(m.type) == selectedKey).toList();
 
       DateTime? nextFor(Medication m) {
         final plan = PlanBuilder.buildOneOffHorizon(m, from: now, to: now.add(const Duration(days: 14)));
@@ -332,6 +332,72 @@ class _UpcomingDoseCard extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: MedicationListItem(med: med),
+      );
+    });
+  }
+}
+
+// New horizontally scrollable list of upcoming plans for the selected category
+class _UpcomingDoseList extends StatelessWidget {
+  const _UpcomingDoseList({required this.selectedKey});
+  final MedicationCategoryKey? selectedKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<MedicationBloc, st.MedicationState>(builder: (context, state) {
+      if (selectedKey == null) return const SizedBox.shrink();
+      if (state is! st.MedicationLoaded) return const SizedBox.shrink();
+
+      final now = DateTime.now();
+      final loaded = state as st.MedicationLoaded;
+      final meds = loaded.medications.where((m) => _deriveCategoryKeyFromType(m.type) == selectedKey).toList();
+
+      DateTime? nextFor(Medication m) {
+        final plan = PlanBuilder.buildOneOffHorizon(m, from: now, to: now.add(const Duration(days: 14)));
+        if (plan.oneOffs.isEmpty) return null;
+        return plan.oneOffs.first.scheduledAt;
+      }
+
+      // Sort meds by closest upcoming occurrence
+      meds.sort((a, b) {
+        final na = nextFor(a);
+        final nb = nextFor(b);
+        if (na == null && nb == null) return 0;
+        if (na == null) return 1;
+        if (nb == null) return -1;
+        return na.compareTo(nb);
+      });
+
+      if (meds.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'Bu kategoride planlı bir doz bulunamadı.',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+          ),
+        );
+      }
+
+      final screenWidth = MediaQuery.of(context).size.width;
+      final itemWidth = screenWidth - 32; // align to page padding
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            children: [
+              for (int i = 0; i < meds.length; i++) ...[
+                SizedBox(width: itemWidth, child: MedicationListItem(med: meds[i])),
+                if (i != meds.length - 1) const SizedBox(width: 8),
+              ]
+            ],
+          ),
+        ),
       );
     });
   }
@@ -504,3 +570,4 @@ MedicationCategoryKey? _deriveCategoryKeyFromType(String value) {
   }
   return null;
 }
+
