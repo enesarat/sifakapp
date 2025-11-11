@@ -11,6 +11,8 @@ import 'package:sifakapp/features/medication_reminder/domain/entities/medication
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/get_all_medications.dart';
 import '../../widgets/floating_nav_bar.dart';
 import '../../widgets/glass_floating_nav_bar.dart';
+import '../../widgets/frosted_blob_background.dart';
+import '../../widgets/floating_top_nav_bar.dart';
 
 class MissedDosesPage extends StatefulWidget {
   const MissedDosesPage({super.key, this.fromNotification = false});
@@ -146,24 +148,20 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
   Widget build(BuildContext context) {
     final pal = _Palette.of(context);
     final cs = Theme.of(context).colorScheme;
-    final canPop = GoRouter.of(context).canPop();
-
     return Scaffold(
       backgroundColor: cs.surface,
-      appBar: AppBar(
-        automaticallyImplyLeading: canPop,
-        backgroundColor: cs.surface,
-        title: const Text('Kaçırılan Dozlar'),
-        leading: canPop
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.pop(),
-                tooltip: 'Geri',
-              )
-            : null,
-        actions: const [SizedBox(width: 48)],
-      ),
-      body: _loading
+      appBar: null,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: FrostedBlobBackground()),
+          const Positioned(
+            left: 0,
+            right: 0,
+            top: 8,
+            child: SafeArea(top: true, bottom: false, child: FloatingTopNavBar(title: 'Geçmiş')),
+          ),
+          Positioned.fill(
+            child: _loading
           ? const Center(child: CircularProgressIndicator())
           : (_totalMissed == 0)
               ? _EmptyState(
@@ -180,7 +178,7 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
                         child: Padding(
                           padding: AppSpacing.pageInsets(
                             context: context,
-                            top: 16,
+                            top: 84,
                             bottom: 110,
                           ),
                           child: ListView(
@@ -219,6 +217,9 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
                       ),
                   ],
                 ),
+          ),
+        ],
+      ),
       bottomNavigationBar: widget.fromNotification
           ? SafeArea(
               top: false,

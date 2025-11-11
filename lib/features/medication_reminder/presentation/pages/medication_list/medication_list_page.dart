@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'widgets/medication_list_appbar.dart';
+import '../../widgets/frosted_blob_background.dart';
+import '../../widgets/floating_top_nav_bar.dart';
 import 'widgets/medication_list_body.dart';
 import '../../widgets/floating_nav_bar.dart';
 import '../../widgets/glass_floating_nav_bar.dart';
@@ -12,14 +13,20 @@ class MedicationListPage extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: cs.surface,
-      appBar: const MedicationListAppBar(),
       body: Stack(
         children: const [
+          Positioned.fill(child: FrostedBlobBackground()),
           Positioned.fill(
             child: Padding(
-              padding: EdgeInsets.only(bottom: 110),
+              padding: EdgeInsets.fromLTRB(0, 84, 0, 110),
               child: MedicationListBody(),
             ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 8,
+            child: SafeArea(top: true, bottom: false, child: FloatingTopNavBar(title: 'Planlar')),
           ),
           Positioned(
             left: 16,
