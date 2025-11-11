@@ -179,7 +179,7 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
                           padding: AppSpacing.pageInsets(
                             context: context,
                             top: 84,
-                            bottom: 110,
+                            bottom: 0,
                           ),
                           child: ListView(
                             children: [
@@ -202,7 +202,7 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
                                       "${_relativeLabel(dt)} ${_fmtTime(dt)}'da kaçırıldı",
                                 ),
                               ),
-                              const SizedBox(height: 80),
+                              const SizedBox(height: 0),
                             ],
                           ),
                         ),

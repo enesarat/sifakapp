@@ -55,7 +55,7 @@ class _Step3ReminderPageState extends State<Step3ReminderPage> {
           colorScheme: base.colorScheme.copyWith(primary: accent),
           textSelectionTheme: TextSelectionThemeData(
             cursorColor: accent,
-            selectionColor: accent.withOpacity(0.28),
+            selectionColor: WizardPalette.primarySelection,
             selectionHandleColor: accent,
           ),
           inputDecorationTheme: base.inputDecorationTheme.copyWith(
@@ -232,7 +232,7 @@ class _Step3ReminderPageState extends State<Step3ReminderPage> {
                 .copyWith(primary: WizardPalette.primary),
             textSelectionTheme: const TextSelectionThemeData(
               cursorColor: WizardPalette.primary,
-              selectionColor: Color(0x448A5CF6),
+              selectionColor: WizardPalette.primarySelection,
               selectionHandleColor: WizardPalette.primary,
             ),
             inputDecorationTheme: Theme.of(context).inputDecorationTheme
@@ -289,4 +289,3 @@ class _Step3ReminderPageState extends State<Step3ReminderPage> {
     );
   }
 }
-

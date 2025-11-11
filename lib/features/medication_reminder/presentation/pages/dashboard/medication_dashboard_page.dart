@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -344,7 +345,7 @@ class _DashboardBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glass = isLight ? Colors.white.withOpacity(0.55) : cs.surface.withOpacity(0.55);
+    final glass = isLight ? Colors.white.withOpacity(0.60) : cs.surface.withOpacity(0.60);
     final borderColor = Colors.white.withOpacity(isLight ? 0.30 : 0.15);
 
     return SizedBox(
@@ -352,47 +353,53 @@ class _DashboardBottomBar extends StatelessWidget {
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
-          Container(
-            height: 76,
-            decoration: BoxDecoration(
-              color: glass,
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: borderColor),
-              boxShadow: [
-                BoxShadow(
-                  color: cs.primary.withOpacity(0.18),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(26),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              child: Container(
+                height: 76,
+                decoration: BoxDecoration(
+                  color: glass,
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(color: borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cs.primary.withOpacity(0.18),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _DBNavItem(
-                  icon: Icons.home,
-                  label: 'Home',
-                  selected: true,
-                  onTap: () => const HomeRoute().go(context),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _DBNavItem(
+                      icon: Icons.home,
+                      label: 'Home',
+                      selected: true,
+                      onTap: () => const HomeRoute().go(context),
+                    ),
+                    _DBNavItem(
+                      icon: Icons.calendar_month,
+                      label: 'Plans',
+                      onTap: () => const PlansRoute().go(context),
+                    ),
+                    const SizedBox(width: 56),
+                    _DBNavItem(
+                      icon: Icons.history,
+                      label: 'History',
+                      onTap: () => const MissedDosesRoute().go(context),
+                    ),
+                    _DBNavItem(
+                      icon: Icons.medication_outlined,
+                      label: 'Dose',
+                      onTap: () => const PlansRoute().go(context),
+                    ),
+                  ],
                 ),
-                _DBNavItem(
-                  icon: Icons.calendar_month,
-                  label: 'Plans',
-                  onTap: () => const PlansRoute().go(context),
-                ),
-                const SizedBox(width: 56),
-                _DBNavItem(
-                  icon: Icons.history,
-                  label: 'History',
-                  onTap: () => const MissedDosesRoute().go(context),
-                ),
-                _DBNavItem(
-                  icon: Icons.medication_outlined,
-                  label: 'Dose',
-                  onTap: () => const PlansRoute().go(context),
-                ),
-              ],
+              ),
             ),
           ),
           Positioned(
@@ -497,4 +504,3 @@ MedicationCategoryKey? _deriveCategoryKeyFromType(String value) {
   }
   return null;
 }
-

@@ -18,7 +18,7 @@ class MedicationListPage extends StatelessWidget {
           Positioned.fill(child: FrostedBlobBackground()),
           Positioned.fill(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(0, 84, 0, 110),
+              padding: EdgeInsets.fromLTRB(0, 84, 0, 0),
               child: MedicationListBody(),
             ),
           ),

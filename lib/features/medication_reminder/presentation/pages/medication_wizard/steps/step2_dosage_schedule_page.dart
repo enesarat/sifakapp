@@ -75,7 +75,7 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
           colorScheme: base.colorScheme.copyWith(primary: accent),
           textSelectionTheme: TextSelectionThemeData(
             cursorColor: accent,
-            selectionColor: accent.withOpacity(0.28),
+            selectionColor: WizardPalette.primarySelection,
             selectionHandleColor: accent,
           ),
           inputDecorationTheme: base.inputDecorationTheme.copyWith(
@@ -127,7 +127,7 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
           colorScheme: base.colorScheme.copyWith(primary: accent),
           textSelectionTheme: TextSelectionThemeData(
             cursorColor: accent,
-            selectionColor: accent.withOpacity(0.28),
+            selectionColor: WizardPalette.primarySelection,
             selectionHandleColor: accent,
           ),
           inputDecorationTheme: base.inputDecorationTheme.copyWith(
@@ -173,7 +173,7 @@ class _Step2DosageSchedulePageState extends State<Step2DosageSchedulePage> {
           colorScheme: base.colorScheme.copyWith(primary: accent),
           textSelectionTheme: TextSelectionThemeData(
             cursorColor: accent,
-            selectionColor: accent.withOpacity(0.28),
+            selectionColor: WizardPalette.primarySelection,
             selectionHandleColor: accent,
           ),
           inputDecorationTheme: base.inputDecorationTheme.copyWith(

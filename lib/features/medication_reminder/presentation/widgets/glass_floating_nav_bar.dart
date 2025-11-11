@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' show ImageFilter;
 import 'package:go_router/go_router.dart';
 
 import 'floating_nav_bar.dart' show NavTab; // reuse enum
@@ -13,58 +14,64 @@ class GlassFloatingNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glass = isLight ? Colors.white.withOpacity(0.55) : cs.surface.withOpacity(0.55);
-    final borderColor = Colors.white.withOpacity(isLight ? 0.30 : 0.15);
+    final glass = isLight ? Colors.white.withOpacity(0.40) : cs.surface.withOpacity(0.50);
+    final borderColor = Colors.white.withOpacity(isLight ? 0.50 : 0.15);
 
     return SizedBox(
       height: 96,
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
-          Container(
-            height: 76,
-            decoration: BoxDecoration(
-              color: glass,
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: borderColor),
-              boxShadow: [
-                BoxShadow(
-                  color: cs.primary.withOpacity(0.18),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(26),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              child: Container(
+                height: 76,
+                decoration: BoxDecoration(
+                  color: glass,
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(color: borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cs.primary.withOpacity(0.18),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _NavItem(
-                  icon: Icons.home,
-                  label: 'Home',
-                  selected: selected == NavTab.home,
-                  onTap: () => const HomeRoute().go(context),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _NavItem(
+                      icon: Icons.home,
+                      label: 'Home',
+                      selected: selected == NavTab.home,
+                      onTap: () => const HomeRoute().go(context),
+                    ),
+                    _NavItem(
+                      icon: Icons.calendar_month,
+                      label: 'Plans',
+                      selected: selected == NavTab.plans,
+                      onTap: () => const PlansRoute().go(context),
+                    ),
+                    const SizedBox(width: 56),
+                    _NavItem(
+                      icon: Icons.history,
+                      label: 'History',
+                      selected: selected == NavTab.history,
+                      onTap: () => const MissedDosesRoute().go(context),
+                    ),
+                    _NavItem(
+                      icon: Icons.medication_outlined,
+                      label: 'Dose',
+                      selected: selected == NavTab.dose,
+                      onTap: () => const PlansRoute().go(context),
+                    ),
+                  ],
                 ),
-                _NavItem(
-                  icon: Icons.calendar_month,
-                  label: 'Plans',
-                  selected: selected == NavTab.plans,
-                  onTap: () => const PlansRoute().go(context),
-                ),
-                const SizedBox(width: 56),
-                _NavItem(
-                  icon: Icons.history,
-                  label: 'History',
-                  selected: selected == NavTab.history,
-                  onTap: () => const MissedDosesRoute().go(context),
-                ),
-                _NavItem(
-                  icon: Icons.medication_outlined,
-                  label: 'Dose',
-                  selected: selected == NavTab.dose,
-                  onTap: () => const PlansRoute().go(context),
-                ),
-              ],
+              ),
             ),
           ),
           Positioned(
@@ -115,4 +122,3 @@ class _NavItem extends StatelessWidget {
     );
   }
 }
-

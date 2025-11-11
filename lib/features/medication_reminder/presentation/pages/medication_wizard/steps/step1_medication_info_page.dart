@@ -79,7 +79,7 @@ class _Step1MedicationInfoPageState extends State<Step1MedicationInfoPage> {
       colorScheme: cs.copyWith(primary: WizardPalette.primary),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: WizardPalette.primary,
-        selectionColor: WizardPalette.primary.withOpacity(0.28),
+        selectionColor: WizardPalette.primarySelection,
         selectionHandleColor: WizardPalette.primary,
       ),
       inputDecorationTheme: theme.inputDecorationTheme.copyWith(
@@ -130,7 +130,7 @@ class _Step1MedicationInfoPageState extends State<Step1MedicationInfoPage> {
                     controller: _wiz.nameController,
                     validator: Validator.validateMedicationName,
                     decoratedPrefixIcon: true,
-                    prefixColor: WizardPalette.primary,
+                    prefixColor: const Color(0xFF8A5CF6),
                     onManuallyEdited: () {
                       setState(() {
                         _wiz.setCategory(null);
@@ -154,7 +154,7 @@ class _Step1MedicationInfoPageState extends State<Step1MedicationInfoPage> {
                     controller: _wiz.diagnosisController,
                     validator: Validator.validateDiagnosis,
                     decoratedPrefixIcon: true,
-                    prefixColor: WizardPalette.secondary,
+                    prefixColor: const Color(0xFFF472B6),
                   ),
                   const SizedBox(height: 12),
                   Column(
@@ -165,7 +165,7 @@ class _Step1MedicationInfoPageState extends State<Step1MedicationInfoPage> {
                         selectedKey: _wiz.selectedCategoryKey,
                         isLoading: _isCategoryLoading,
                         decoratedPrefixIcon: true,
-                        prefixColor: WizardPalette.tertiary,
+                        prefixColor: const Color(0xFF22D3EE),
                         onChanged: (key) => setState(() {
                           _wiz.setCategory(key);
                           _typeError = null;
