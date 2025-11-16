@@ -1,4 +1,4 @@
-ï»¿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +17,8 @@ import 'features/medication_reminder/domain/use_cases/plan/reapply_plan_if_chang
 import 'features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
 import 'features/medication_reminder/presentation/blocs/medication/medication_event.dart';
 import 'features/medication_reminder/infra/notifications/awesome_notifications_scheduler.dart';
+import 'features/medication_reminder/domain/use_cases/consume_dose_occurrence.dart';
+import 'features/medication_reminder/domain/use_cases/skip_dose_occurrence.dart';
 
 import 'dart:convert';
 
@@ -32,6 +34,35 @@ Map<String, dynamic>? _extractPayload(dynamic payload) {
   return null;
 }
 
+DateTime? _resolveOccurrenceAtFromPayload(Map<String, dynamic> p) {
+  try {
+    if (p['at'] is String) {
+      final dt = DateTime.tryParse(p['at'] as String);
+      if (dt != null) return dt;
+    }
+    final now = DateTime.now();
+    final int? h = p['hour'] is int ? p['hour'] as int : int.tryParse('${p['hour']}');
+    final int? m = p['minute'] is int ? p['minute'] as int : int.tryParse('${p['minute']}');
+    if (h != null && m != null) {
+      // If weekday provided, prefer today if matches; else compute nearest
+      final int? w = p['weekday'] is int ? p['weekday'] as int : int.tryParse('${p['weekday']}');
+      DateTime candidate = DateTime(now.year, now.month, now.day, h, m);
+      if (w != null && w >= 1 && w <= 7) {
+        int diff = w - now.weekday;
+        if (diff != 0 || candidate.isBefore(now)) {
+          if (diff <= 0) diff += 7;
+          candidate = candidate.add(Duration(days: diff));
+        }
+      } else {
+        // daily: if time already passed significantly, assume today’s occurrence
+        // leaving as today’s h:m is acceptable for intake
+      }
+      return candidate;
+    }
+  } catch (_) {}
+  return null;
+}
+
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 const bool kUseAwesomeNotifications = true;
 
@@ -42,7 +73,7 @@ Future<void> main() async {
     await AwesomeNotificationsScheduler.initialize();
   }
 
-  final (medsBox, plansBox) = await HiveConfig.init();
+  final (medsBox, plansBox, logsBox) = await HiveConfig.init();
 
   final FlutterLocalNotificationsPlugin plugin =
       await NotificationInitializer.initialize(onTap: (payload) async {});
@@ -50,6 +81,7 @@ Future<void> main() async {
   setupLocator(
     medsBox,
     plansBox,
+    doseLogsBox: logsBox,
     notificationsPlugin: plugin,
     useAwesomeNotifications: kUseAwesomeNotifications,
   );
@@ -85,7 +117,7 @@ Future<void> main() async {
         } else if (type == 'take_dose') {
           final medId = parsed['medId'];
           if (medId is String && medId.isNotEmpty) {
-            ctx?.go(DoseIntakeRoute(id: medId).location);
+            final at = _resolveOccurrenceAtFromPayload(parsed); final route = DoseIntakeRoute(id: medId, occurrenceAt: at); final notifId = parsed['notifId']; final loc = route.location + (notifId != null ? (route.location.contains('?') ? '&' : '?') + 'notif-id=' + notifId.toString() : ''); ctx?.go(loc);
           }
         }
       },
@@ -104,6 +136,8 @@ Future<void> main() async {
         cancelPlanForMedication: sl(),
         consumeDose: sl(),
         skipDose: sl(),
+        consumeDoseOccurrence: sl.isRegistered<ConsumeDoseOccurrence>() ? sl() : null,
+        skipDoseOccurrence: sl.isRegistered<SkipDoseOccurrence>() ? sl() : null,
       )..add(FetchAllMedications()),
       child: MyApp(initialAction: initialAction),
     ),
@@ -138,7 +172,7 @@ class _MyAppState extends State<MyApp> {
       } else if (type == 'take_dose') {
         final medId = parsed['medId'];
         if (medId is String && medId.isNotEmpty) {
-          ctx.go(DoseIntakeRoute(id: medId).location);
+          final at = _resolveOccurrenceAtFromPayload(parsed); final route = DoseIntakeRoute(id: medId, occurrenceAt: at); final notifId = parsed['notifId']; final loc = route.location + (notifId != null ? (route.location.contains('?') ? '&' : '?') + 'notif-id=' + notifId.toString() : ''); ctx.go(loc);
         }
       }
     });
@@ -147,7 +181,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Ä°laÃ§ HatÄ±rlatÄ±cÄ±',
+      title: 'Ýlaç Hatýrlatýcý',
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
       routerConfig: _router,
@@ -221,6 +255,8 @@ ThemeData _buildTheme(Brightness brightness) {
     ),
   );
 }
+
+
 
 
 

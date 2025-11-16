@@ -202,51 +202,25 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
                                       "${_relativeLabel(dt)} ${_fmtTime(dt)}'da kaçırıldı",
                                 ),
                               ),
-                              const SizedBox(height: 0),
+                              const SizedBox(height: 120),
                             ],
                           ),
                         ),
                       ),
                     ),
-                    if (!widget.fromNotification)
-                      const Positioned(
-                        left: 16,
-                        right: 16,
-                        bottom: 16,
-                        child: GlassFloatingNavBar(selected: NavTab.history),
-                      ),
+                    
                   ],
                 ),
           ),
+          const Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: GlassFloatingNavBar(selected: NavTab.history),
+          ),
         ],
       ),
-      bottomNavigationBar: widget.fromNotification
-          ? SafeArea(
-              top: false,
-              child: Padding(
-                padding: AppSpacing.pageInsets(
-                  context: context,
-                  top: 8,
-                  bottom: 16,
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: pal.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(26),
-                      ),
-                    ),
-                    onPressed: () => context.go(const HomeRoute().location),
-                    icon: const Icon(Icons.home),
-                    label: const Text('Ana Sayfa'),
-                  ),
-                ),
-              ),
-            )
-          : null,
+      bottomNavigationBar: null,
     );
   }
 }

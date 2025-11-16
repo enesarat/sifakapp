@@ -166,6 +166,13 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
   }
 
   @override
+  Future<void> dismissDelivered(int id) async {
+    // FLNP platformunda ayrı bir 'dismiss' API yok; mevcut davranış
+    // görünürdeki bildirimi de kaldırmak için cancel(id) çağırmaktır.
+    await _plugin.cancel(id);
+  }
+
+  @override
   Future<List<PendingNotification>> listPending() async {
     final reqs = await _plugin.pendingNotificationRequests();
     return reqs

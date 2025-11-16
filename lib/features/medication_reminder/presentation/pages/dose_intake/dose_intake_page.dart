@@ -15,12 +15,14 @@ import '../../blocs/medication/medication_event.dart' as ev;
 import '../../blocs/medication/medication_state.dart' as st;
 import '../../../domain/entities/medication_category.dart';
 import '../../../domain/use_cases/catalog/get_medication_category_by_key.dart';
+import '../../../application/notifications/notification_scheduler.dart';
 import 'widgets/confirm_skip_dialog.dart';
 
 class DoseIntakePage extends StatefulWidget {
   final String id;
   final DateTime? occurrenceAt;
-  const DoseIntakePage({super.key, required this.id, this.occurrenceAt});
+  final int? notifId;
+  const DoseIntakePage({super.key, required this.id, this.occurrenceAt, this.notifId});
 
   @override
   State<DoseIntakePage> createState() => _DoseIntakePageState();
@@ -99,9 +101,11 @@ class _DoseIntakePageState extends State<DoseIntakePage> {
               SnackBar(content: Text('Sonraki doz: ${_fmtTime(next)}')),
             );
           }
+          await _dismissIfNeeded();
           await Future.delayed(const Duration(milliseconds: 300));
           _scheduleGoHome();
         } else if (state is st.DoseSkipped) {
+          await _dismissIfNeeded();
           _scheduleGoHome();
         } else if (state is st.MedicationError) {
           if (mounted) {
@@ -134,6 +138,15 @@ class _DoseIntakePageState extends State<DoseIntakePage> {
         ),
       ),
     );
+  }
+
+  Future<void> _dismissIfNeeded() async {
+    final id = widget.notifId;
+    if (id == null) return;
+    try {
+      final sched = GetIt.I<NotificationScheduler>();
+      await sched.dismissDelivered(id);
+    } catch (_) {}
   }
 
   void _scheduleGoHome() {

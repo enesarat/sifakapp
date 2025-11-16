@@ -139,8 +139,11 @@ class DoseIntakeRoute extends GoRouteData {
   final DateTime? occurrenceAt;
 
   @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      DoseIntakePage(id: id, occurrenceAt: occurrenceAt);
+  Widget build(BuildContext context, GoRouterState state) {
+    final notifIdStr = state.uri.queryParameters['notif-id'];
+    final notifId = notifIdStr == null ? null : int.tryParse(notifIdStr);
+    return DoseIntakePage(id: id, occurrenceAt: occurrenceAt, notifId: notifId);
+  }
 }
 
 @TypedGoRoute<MissedDosesRoute>(path: AppRoutePaths.missed)

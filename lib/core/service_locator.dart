@@ -25,6 +25,7 @@ import '../features/medication_reminder/data/data_sources/local_medication_datas
 import '../features/medication_reminder/data/models/medication_model.dart';
 import '../features/medication_reminder/data/models/medication_plan_model.dart';
 import '../features/medication_reminder/data/repositories/medication_repository_impl.dart';
+import '../features/medication_reminder/data/models/dose_log_model.dart';
 import '../features/medication_reminder/domain/repositories/medication_repository.dart';
 import '../features/medication_reminder/domain/use_cases/consume_dose.dart';
 import '../features/medication_reminder/domain/use_cases/create_medication.dart';
@@ -32,6 +33,10 @@ import '../features/medication_reminder/domain/use_cases/delete_medication.dart'
 import '../features/medication_reminder/domain/use_cases/edit_medication.dart';
 import '../features/medication_reminder/domain/use_cases/get_all_medications.dart';
 import '../features/medication_reminder/domain/use_cases/skip_dose.dart';
+import '../features/medication_reminder/domain/use_cases/consume_dose_occurrence.dart';
+import '../features/medication_reminder/domain/use_cases/skip_dose_occurrence.dart';
+import '../features/medication_reminder/domain/repositories/dose_log_repository.dart';
+import '../features/medication_reminder/data/repositories/dose_log_repository_impl.dart';
 
 // Plan layer placeholder (enable when plan repo/datasource ready)
 // import '../features/medication_reminder/data/data_sources/local_medication_plan_datasource.dart';
@@ -41,9 +46,12 @@ import '../features/medication_reminder/domain/use_cases/skip_dose.dart';
 final sl = GetIt.instance;
 
 void setupLocator(
-    Box<MedicationModel> medsBox, Box<MedicationPlanModel> plansBox,
-    {FlutterLocalNotificationsPlugin? notificationsPlugin,
-    bool useAwesomeNotifications = false}) {
+  Box<MedicationModel> medsBox,
+  Box<MedicationPlanModel> plansBox, {
+  Box<DoseLogModel>? doseLogsBox,
+  FlutterLocalNotificationsPlugin? notificationsPlugin,
+  bool useAwesomeNotifications = false,
+}) {
   // ---------- Notifications ----------
   if (useAwesomeNotifications) {
     AwesomeNotificationsScheduler.initialize();
@@ -87,6 +95,13 @@ void setupLocator(
     () => MedicationPlanRepositoryImpl(sl()),
   );
 
+  // Dose logs repository (optional box may be null in some isolates)
+  if (doseLogsBox != null) {
+    sl.registerLazySingleton<DoseLogRepository>(
+      () => DoseLogRepositoryImpl(doseLogsBox),
+    );
+  }
+
   // ---------- Use Cases ----------
   sl.registerLazySingleton<GetAllMedications>(() => GetAllMedications(sl()));
   sl.registerLazySingleton<CreateMedication>(() => CreateMedication(sl()));
@@ -94,6 +109,13 @@ void setupLocator(
   sl.registerLazySingleton<EditMedication>(() => EditMedication(sl()));
   sl.registerLazySingleton<ConsumeDose>(() => ConsumeDose(sl()));
   sl.registerLazySingleton<SkipDose>(() => const SkipDose());
+  // Occurrence-aware use cases (log + action)
+  if (sl.isRegistered<DoseLogRepository>()) {
+    sl.registerLazySingleton<ConsumeDoseOccurrence>(
+        () => ConsumeDoseOccurrence(sl(), sl()));
+    sl.registerLazySingleton<SkipDoseOccurrence>(
+        () => SkipDoseOccurrence(sl()));
+  }
 
   sl.registerLazySingleton<SearchMedicationCatalog>(
       () => SearchMedicationCatalog(sl()));

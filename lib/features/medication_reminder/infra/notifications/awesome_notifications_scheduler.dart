@@ -153,6 +153,18 @@ class AwesomeNotificationsScheduler implements NotificationScheduler {
   }
 
   @override
+  Future<void> dismissDelivered(int id) async {
+    try {
+      await AwesomeNotifications().dismiss(id);
+    } catch (_) {
+      // Fallback: ensure it's not left around
+      try {
+        await AwesomeNotifications().cancel(id);
+      } catch (_) {}
+    }
+  }
+
+  @override
   Future<List<PendingNotification>> listPending() async {
     final list = await AwesomeNotifications().listScheduledNotifications();
     return list

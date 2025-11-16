@@ -40,6 +40,11 @@ abstract class NotificationScheduler {
   Future<void> cancel(int id);
   Future<void> cancelBatch(Iterable<int> ids);
 
+  /// Dismisses only the currently delivered notification with this id (if any),
+  /// without cancelling future schedules. On platforms/adapters that don't
+  /// support dismiss, implementations may fallback to cancel(id).
+  Future<void> dismissDelivered(int id);
+
   /// Debug/inspection: list currently scheduled local notifications
   Future<List<PendingNotification>> listPending();
 }

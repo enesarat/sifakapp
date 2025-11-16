@@ -17,6 +17,8 @@ import '../../blocs/medication/medication_state.dart' as st;
 import '../medication_list/widgets/medication_list_item.dart';
 import '../../widgets/frosted_blob_background.dart';
 import '../../widgets/floating_top_nav_bar.dart';
+import '../../../domain/repositories/dose_log_repository.dart';
+import '../../../domain/entities/dose_log.dart' as dlog;
 
 class MedicationDashboardPage extends StatefulWidget {
   const MedicationDashboardPage({super.key});
@@ -176,31 +178,64 @@ class _TodayProgressRing extends StatelessWidget {
     return BlocBuilder<MedicationBloc, st.MedicationState>(
       builder: (context, state) {
         int planned = 0;
-        int taken = 0; // TODO: daily taken tracking can populate this
-
         if (state is st.MedicationLoaded) {
           final today = DateTime.now();
           for (final m in state.medications) {
             if (!_shouldTakeOn(m, today)) continue;
-            final times = _plannedTimesCountFor(m);
-            planned += times;
+            planned += _plannedTimesCountFor(m);
           }
         }
 
-        final pct = planned == 0 ? 0.0 : (taken / planned).clamp(0.0, 1.0);
+        final now = DateTime.now();
+        final start = DateTime(now.year, now.month, now.day);
+        final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
 
-        return _ProgressRing(
-          progress: pct,
-          size: 188,
-          stroke: 14,
-          center: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('${(pct * 100).round()}%', style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text('$taken / $planned Alındı', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
-            ],
-          ),
+        final hasLogs = GetIt.I.isRegistered<DoseLogRepository>();
+        if (!hasLogs) {
+          final pct = 0.0;
+          return _ProgressRing(
+            progress: pct,
+            size: 188,
+            stroke: 14,
+            center: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('${(pct * 100).round()}%', style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text('0 / $planned Alındı', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
+              ],
+            ),
+          );
+        }
+
+        final logs = GetIt.I<DoseLogRepository>();
+        return StreamBuilder<List<dlog.DoseLog>>(
+          stream: logs.watchInRange(start, end),
+          builder: (context, snap) {
+            final list = snap.data ?? const <dlog.DoseLog>[];
+            final taken = list.where((l) => l.status == dlog.DoseLogStatus.taken).length;
+            final skipped = list.where((l) => l.status == dlog.DoseLogStatus.skipped).length;
+            final pct = planned == 0 ? 0.0 : (taken / planned).clamp(0.0, 1.0);
+            final skippedColor = Theme.of(context).brightness == Brightness.light
+                ? const Color(0xFFEF9A9A) // red200 (pastel)
+                : const Color(0xFFE57373); // red300 (pastel-ish)
+
+            return _ProgressRing(
+              progress: pct,
+              size: 188,
+              stroke: 14,
+              center: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${(pct * 100).round()}%', style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Text('$taken / $planned Alındı', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
+                  const SizedBox(height: 2),
+                  Text('Atlandı: $skipped', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: skippedColor)),
+                ],
+              ),
+            );
+          },
         );
       },
     );

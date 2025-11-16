@@ -17,6 +17,7 @@ class ScheduleFromPlan {
             'medId': plan.medicationId,
             'hour': s.time.hour,
             'minute': s.time.minute,
+            'notifId': s.notificationId,
           });
           await scheduler.scheduleDaily(
             id: s.notificationId,
@@ -37,6 +38,7 @@ class ScheduleFromPlan {
             'weekday': s.weekday,
             'hour': s.time.hour,
             'minute': s.time.minute,
+            'notifId': s.notificationId,
           });
           await scheduler.scheduleWeekly(
             id: s.notificationId,
@@ -56,6 +58,7 @@ class ScheduleFromPlan {
             'type': 'take_dose',
             'medId': plan.medicationId,
             'at': o.scheduledAt.toIso8601String(),
+            'notifId': o.notificationId,
           });
           await scheduler.scheduleOneOff(
             id: o.notificationId,

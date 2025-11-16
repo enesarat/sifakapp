@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sifakapp/core/ui/spacing.dart';
+
 import 'package:sifakapp/core/ui/spacing.dart';
 import 'package:sifakapp/core/navigation/app_routes.dart';
+
 import '../../../domain/entities/medication.dart';
 import '../../../domain/entities/medication_category.dart';
+import '../../../domain/entities/dose_log.dart' as dlog;
 import '../../../domain/use_cases/catalog/get_all_medication_categories.dart';
 import '../../../application/plan/plan_builder.dart';
 import '../../blocs/medication/medication_bloc.dart';
@@ -14,6 +16,7 @@ import '../../widgets/frosted_blob_background.dart';
 import '../../widgets/floating_top_nav_bar.dart';
 import '../../widgets/glass_floating_nav_bar.dart';
 import '../../widgets/floating_nav_bar.dart' show NavTab;
+import '../../../domain/repositories/dose_log_repository.dart';
 
 class DoseNowPage extends StatefulWidget {
   const DoseNowPage({super.key});
@@ -40,7 +43,7 @@ class _DoseNowPageState extends State<DoseNowPage> {
       if (!mounted) return;
       setState(() {
         _categories = cats;
-        _selectedKey = cats.isNotEmpty ? cats.first.key : null; // default Capsule
+        _selectedKey = cats.isNotEmpty ? cats.first.key : null; // default
         _loadingCats = false;
       });
     } catch (_) {
@@ -68,7 +71,7 @@ class _DoseNowPageState extends State<DoseNowPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 8),
-                  const FloatingTopNavBar(title: 'Dozu �imdi Kullan'),
+                  const FloatingTopNavBar(title: 'Dozu Şimdi Kullan'),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                     child: Text(
@@ -112,11 +115,9 @@ class _DoseNowPageState extends State<DoseNowPage> {
                                           color: Theme.of(context).iconTheme.color, size: 18),
                                       const SizedBox(width: 6),
                                       Text(
-                                        // dashboard'daki gibi Türkçe label kullan
                                         c.label.split('(').first.trim(),
                                         style: TextStyle(
-                                          fontWeight:
-                                              selected ? FontWeight.w700 : FontWeight.w600,
+                                          fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                                           color: selected
                                               ? Theme.of(context).colorScheme.primary
                                               : Theme.of(context).textTheme.bodyMedium?.color,
@@ -134,11 +135,7 @@ class _DoseNowPageState extends State<DoseNowPage> {
                   const SizedBox(height: 12),
                   Expanded(
                     child: Padding(
-                      padding: AppSpacing.pageInsets(
-                        context: context,
-                        top: 0,
-                        bottom: 0, // plans & missed pages: no bottom padding
-                      ),
+                      padding: AppSpacing.pageInsets(context: context, top: 0, bottom: 0),
                       child: _DoseList(selectedKey: _selectedKey),
                     ),
                   ),
@@ -204,12 +201,24 @@ class _DoseList extends StatelessWidget {
           );
         }
 
-        return ListView.separated(
-          itemCount: entries.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (ctx, i) {
-            final e = entries[i];
-            return _DoseCard(entry: e);
+        final logs = GetIt.I<DoseLogRepository>();
+        return StreamBuilder<List<dlog.DoseLog>>(
+          stream: logs.watchInRange(start, end),
+          builder: (context, snap) {
+            final data = snap.data ?? const <dlog.DoseLog>[];
+            final byId = <String, dlog.DoseLogStatus>{};
+            for (final l in data) {
+              byId[_logId(l.medId, l.plannedAt)] = l.status;
+            }
+            return ListView.separated(
+              itemCount: entries.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (ctx, i) {
+                final e = entries[i];
+                final st = byId[_logId(e.med.id, e.at)];
+                return _DoseCard(entry: e, status: st);
+              },
+            );
           },
         );
       },
@@ -218,8 +227,9 @@ class _DoseList extends StatelessWidget {
 }
 
 class _DoseCard extends StatelessWidget {
-  const _DoseCard({required this.entry});
+  const _DoseCard({required this.entry, this.status});
   final _DoseEntry entry;
+  final dlog.DoseLogStatus? status;
 
   String _fmt(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -293,24 +303,67 @@ class _DoseCard extends StatelessWidget {
                     .displaySmall
                     ?.copyWith(fontWeight: FontWeight.w300, letterSpacing: 3),
               ),
-              SizedBox(
-                height: 44,
-                child: ElevatedButton(
-                  onPressed: () { DoseIntakeRoute(id: entry.med.id, occurrenceAt: entry.at).go(context); },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  child: const Text('Kullan', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ),
+              _ActionButton(cs: cs, entry: entry, status: status),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({required this.cs, required this.entry, this.status});
+  final ColorScheme cs;
+  final _DoseEntry entry;
+  final dlog.DoseLogStatus? status;
+
+  @override
+  Widget build(BuildContext context) {
+    if (status == dlog.DoseLogStatus.taken) {
+      return _pillButton(
+        label: 'Kullanıldı',
+        bg: Theme.of(context).brightness == Brightness.light ? Colors.black12 : Colors.white10,
+        fg: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white70,
+        enabled: false,
+      );
+    }
+    if (status == dlog.DoseLogStatus.skipped) {
+      return _pillButton(
+        label: 'Atlandı',
+        bg: Theme.of(context).brightness == Brightness.light ? Colors.black12 : Colors.white10,
+        fg: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white70,
+        enabled: false,
+      );
+    }
+    return SizedBox(
+      height: 44,
+      child: ElevatedButton(
+        onPressed: () => DoseIntakeRoute(id: entry.med.id, occurrenceAt: entry.at).go(context),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: cs.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        ),
+        child: const Text('Kullan', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  Widget _pillButton({required String label, required Color bg, required Color fg, required bool enabled}) {
+    return SizedBox(
+      height: 44,
+      child: ElevatedButton(
+        onPressed: enabled ? () {} : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bg,
+          foregroundColor: fg,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+          elevation: 0,
+        ),
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
       ),
     );
   }
@@ -322,7 +375,7 @@ class _DoseEntry {
   const _DoseEntry({required this.med, required this.at});
 }
 
-// --- Icon helpers (duplicated from missed_doses_page for consistency) ---
+// --- Icon helpers ---
 MedicationCategoryKey? _deriveCategoryKeyFromType(String value) {
   final v = value.trim();
   final byKey = MedicationCategoryKey.fromValue(v);
@@ -349,7 +402,7 @@ MedicationCategoryKey? _deriveCategoryKeyFromType(String value) {
   if (containsAny(const ['damla', 'drop'])) {
     return MedicationCategoryKey.oralDrops;
   }
-  if (containsAny(const ['çözelt', 'cozelt', 'solüsyon', 'solution'])) {
+  if (containsAny(const ['çözelti', 'cozelti', 'solüsyon', 'solution'])) {
     return MedicationCategoryKey.oralSolution;
   }
   return null;
@@ -374,5 +427,12 @@ IconData _iconForCategoryKey(MedicationCategoryKey key) {
   }
 }
 
-
+String _logId(String medId, DateTime at) {
+  final y = at.year.toString().padLeft(4, '0');
+  final m = at.month.toString().padLeft(2, '0');
+  final d = at.day.toString().padLeft(2, '0');
+  final hh = at.hour.toString().padLeft(2, '0');
+  final mm = at.minute.toString().padLeft(2, '0');
+  return '$medId@$y$m$d$hh$mm';
+}
 

@@ -11,6 +11,9 @@ import '../../features/medication_reminder/application/plan/plan_builder.dart';
 import '../../features/medication_reminder/data/data_sources/local_medication_datasource.dart';
 import '../../features/medication_reminder/data/mappers/medication_mapper.dart';
 import '../../features/medication_reminder/infra/notifications/awesome_notifications_scheduler.dart';
+import '../../features/medication_reminder/data/repositories/dose_log_repository_impl.dart';
+import '../../features/medication_reminder/domain/entities/dose_log.dart';
+import '../../features/medication_reminder/data/mappers/dose_log_mapper.dart' as mapper;
 import '../bootstrapper/hive_config.dart';
 
 const String kMissedDoseTask = 'missed_dose_check';
@@ -36,7 +39,7 @@ void callbackDispatcher() {
     await AwesomeNotificationsScheduler.initialize();
 
     try {
-      final (medsBox, _) = await HiveConfig.init();
+      final (medsBox, _, logsBox) = await HiveConfig.init();
       final ds = LocalMedicationDataSource(medsBox);
       final medsModels = await ds.getAll();
       final meds = medsModels.map(MedicationMapper.toEntity).toList();
@@ -45,6 +48,7 @@ void callbackDispatcher() {
       final from = now.subtract(const Duration(hours: 24));
 
       var missedCount = 0;
+      final logsRepo = DoseLogRepositoryImpl(logsBox);
       for (final med in meds) {
         final plan = PlanBuilder.buildOneOffHorizon(
           med,
@@ -53,6 +57,22 @@ void callbackDispatcher() {
         );
         final missed = plan.oneOffs.where((o) => !o.scheduledAt.isAfter(now));
         missedCount += missed.length;
+
+        // Yazılmamış kaçanları skipped olarak logla
+        for (final o in missed) {
+          final existing = await logsRepo.getByOccurrence(med.id, o.scheduledAt);
+          if (existing == null) {
+            final id = mapper.buildDoseLogId(med.id, o.scheduledAt);
+            final log = DoseLog(
+              id: id,
+              medId: med.id,
+              plannedAt: o.scheduledAt,
+              resolvedAt: DateTime.now(),
+              status: DoseLogStatus.skipped,
+            );
+            await logsRepo.upsert(log);
+          }
+        }
       }
 
       // Snooze baseline: notify only if count increased since last baseline

@@ -9,6 +9,8 @@ import '../../../domain/use_cases/plan/reapply_plan_if_changed.dart';
 import '../../../domain/use_cases/plan/cancel_plan_for_medication.dart';
 import '../../../domain/use_cases/consume_dose.dart';
 import '../../../domain/use_cases/skip_dose.dart';
+import '../../../domain/use_cases/consume_dose_occurrence.dart';
+import '../../../domain/use_cases/skip_dose_occurrence.dart';
 import 'medication_event.dart';
 import 'medication_state.dart';
 
@@ -22,6 +24,8 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
   final CancelPlanForMedication cancelPlanForMedication;
   final ConsumeDose consumeDose;
   final SkipDose skipDose;
+  final ConsumeDoseOccurrence? consumeDoseOccurrence;
+  final SkipDoseOccurrence? skipDoseOccurrence;
 
   MedicationBloc({
     required this.getAllMedications,
@@ -33,6 +37,8 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     required this.cancelPlanForMedication,
     required this.consumeDose,
     required this.skipDose,
+    this.consumeDoseOccurrence,
+    this.skipDoseOccurrence,
   }) : super(MedicationInitial()) {
     on<FetchAllMedications>(_onFetchAll);
     on<AddMedication>(_onAdd);
@@ -108,7 +114,10 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     Emitter<MedicationState> emit,
   ) async {
     try {
-      final updated = await consumeDose.call(event.id);
+      final updated = (event.occurrenceAt != null && consumeDoseOccurrence != null)
+          ? await consumeDoseOccurrence!.call(
+              medId: event.id, plannedAt: event.occurrenceAt!)
+          : await consumeDose.call(event.id);
       emit(DoseConsumed(updated));
       add(FetchAllMedications());
     } catch (e) {
@@ -121,7 +130,12 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     Emitter<MedicationState> emit,
   ) async {
     try {
-      await skipDose.call(event.id);
+      if (event.occurrenceAt != null && skipDoseOccurrence != null) {
+        await skipDoseOccurrence!.call(
+            medId: event.id, plannedAt: event.occurrenceAt!);
+      } else {
+        await skipDose.call(event.id);
+      }
       emit(DoseSkipped(event.id));
       add(FetchAllMedications());
     } catch (e) {

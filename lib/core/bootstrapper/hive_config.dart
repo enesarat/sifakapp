@@ -1,9 +1,14 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../features/medication_reminder/data/models/medication_model.dart';
 import '../../features/medication_reminder/data/models/medication_plan_model.dart';
+import '../../features/medication_reminder/data/models/dose_log_model.dart';
 
 class HiveConfig {
-  static Future<(Box<MedicationModel>, Box<MedicationPlanModel>)> init() async {
+  static Future<(
+    Box<MedicationModel>,
+    Box<MedicationPlanModel>,
+    Box<DoseLogModel>
+  )> init() async {
     await Hive.initFlutter();
 
     // Adapterler
@@ -16,12 +21,15 @@ class HiveConfig {
     if (!Hive.isAdapterRegistered(5)) Hive.registerAdapter(WeeklySlotModelAdapter());
     if (!Hive.isAdapterRegistered(6)) Hive.registerAdapter(OneOffOccurrenceModelAdapter());
     if (!Hive.isAdapterRegistered(7)) Hive.registerAdapter(MedicationPlanModelAdapter());
+    if (!Hive.isAdapterRegistered(8)) Hive.registerAdapter(DoseLogStatusModelAdapter());
+    if (!Hive.isAdapterRegistered(9)) Hive.registerAdapter(DoseLogModelAdapter());
 
     // Box aç
     final medsBox = await _openBoxSafe<MedicationModel>('medications');
     final plansBox = await _openBoxSafe<MedicationPlanModel>('medication_plans');
+    final logsBox = await _openBoxSafe<DoseLogModel>('dose_logs');
 
-    return (medsBox, plansBox);
+    return (medsBox, plansBox, logsBox);
   }
 
   // Güvenli açıcı: PROD ortamında veri silme yok; hata fırlatılır
