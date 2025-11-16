@@ -20,6 +20,7 @@ import 'package:sifakapp/features/medication_reminder/presentation/pages/medicat
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/confirm_delete_medication_dialog.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/delete_medication_dialog.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/missed/missed_doses_page.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/pages/dose_now/dose_now_page.dart';
 
 part 'app_routes.g.dart';
 
@@ -152,6 +153,15 @@ class MissedDosesRoute extends GoRouteData {
     final fromNotif = src == 'notif';
     return MissedDosesPage(fromNotification: fromNotif);
   }
+}
+
+@TypedGoRoute<DoseNowRoute>(path: AppRoutePaths.doseNow)
+class DoseNowRoute extends GoRouteData {
+  const DoseNowRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const DoseNowPage();
 }
 
 @TypedGoRoute<MedicationDetailsDialogRoute>(path: AppRoutePaths.medicationDetails)

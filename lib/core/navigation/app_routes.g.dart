@@ -17,6 +17,7 @@ List<RouteBase> get $appRoutes => [
       $medicationEditRoute,
       $doseIntakeRoute,
       $missedDosesRoute,
+      $doseNowRoute,
       $medicationDetailsDialogRoute,
       $confirmDeleteMedicationRoute,
     ];
@@ -263,6 +264,28 @@ extension $MissedDosesRouteExtension on MissedDosesRoute {
 
   String get location => GoRouteData.$location(
         '/missed',
+      );
+
+  void go(BuildContext context) => context.go(location);
+
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $doseNowRoute => GoRouteData.$route(
+      path: '/dose-now',
+      factory: $DoseNowRouteExtension._fromState,
+    );
+
+extension $DoseNowRouteExtension on DoseNowRoute {
+  static DoseNowRoute _fromState(GoRouterState state) => const DoseNowRoute();
+
+  String get location => GoRouteData.$location(
+        '/dose-now',
       );
 
   void go(BuildContext context) => context.go(location);

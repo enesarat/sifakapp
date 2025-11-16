@@ -461,7 +461,7 @@ class _DashboardBottomBar extends StatelessWidget {
                     _DBNavItem(
                       icon: Icons.medication_outlined,
                       label: 'Dose',
-                      onTap: () => const PlansRoute().go(context),
+                      onTap: () => context.go(AppRoutePaths.doseNow),
                     ),
                   ],
                 ),
@@ -570,4 +570,3 @@ MedicationCategoryKey? _deriveCategoryKeyFromType(String value) {
   }
   return null;
 }
-

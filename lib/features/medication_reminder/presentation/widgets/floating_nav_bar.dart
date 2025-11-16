@@ -66,7 +66,7 @@ class FloatingNavBar extends StatelessWidget {
                   icon: Icons.medication_outlined,
                   label: 'Dose',
                   selected: selected == NavTab.dose,
-                  onTap: () => const PlansRoute().go(context),
+                  onTap: () => const DoseNowRoute().go(context),
                 ),
               ],
             ),

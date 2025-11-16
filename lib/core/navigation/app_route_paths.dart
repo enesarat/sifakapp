@@ -13,6 +13,7 @@ class AppRoutePaths {
 
   // Dose
   static const String doseIntake = '/dose/:id';
+  static const String doseNow = '/dose-now';
 
   // Misc
   static const String missed = '/missed';
