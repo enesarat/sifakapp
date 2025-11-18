@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 
 import 'package:sifakapp/core/service_locator.dart';
 import 'package:sifakapp/core/validations/validator.dart';
@@ -14,6 +15,7 @@ import 'package:sifakapp/core/navigation/app_routes.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_bloc.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_event.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/blocs/medication/medication_state.dart';
+import 'package:sifakapp/features/medication_reminder/domain/repositories/dose_log_repository.dart';
 
 // Reusable inputs (barrel)
 import '../widgets/widgets.dart';
@@ -86,6 +88,8 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
 
   Medication? _med;
   bool _ready = false;
+  bool _editLocked = false;
+  bool _checkingLogs = true;
 
   @override
   void initState() {
@@ -105,6 +109,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     if (_med != null) {
       _hydrateControllers(_med!);
       _ready = true;
+      _checkEditLocked();
     }
 
     _loadCategories();
@@ -118,6 +123,7 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
           _med = found.first;
           _hydrateControllers(_med!);
           _ready = true;
+          _checkEditLocked();
         }
       } else {
         context.read<MedicationBloc>().add(FetchAllMedications());
@@ -132,6 +138,33 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
     _pillsController.dispose();
     _remainingPillsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkEditLocked() async {
+    try {
+      if (_med == null || !GetIt.I.isRegistered<DoseLogRepository>()) {
+        setState(() {
+          _editLocked = false;
+          _checkingLogs = false;
+        });
+        return;
+      }
+      final repo = GetIt.I<DoseLogRepository>();
+      final now = DateTime.now();
+      final start = _med!.startDate;
+      final logs = await repo.getInRange(start, now, medId: _med!.id);
+      if (!mounted) return;
+      setState(() {
+        _editLocked = logs.isNotEmpty;
+        _checkingLogs = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _editLocked = false;
+        _checkingLogs = false;
+      });
+    }
   }
 
   Future<void> _loadCategories() async {
@@ -501,7 +534,9 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: MedicationSaveButton(onPressed: _submit),
+            child: MedicationSaveButton(
+              onPressed: (_checkingLogs || _editLocked) ? null : () { _submit(); },
+            ),
           ),
         ),
         body: !_ready
@@ -514,6 +549,43 @@ class _MedicationEditPageState extends State<MedicationEditPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (_editLocked) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Plana ait doz kullanıldığı için düzenleme yapılamaz.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       MedicationNameField(
                         controller: _nameController,
                         validator: Validator.validateMedicationName,

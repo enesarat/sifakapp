@@ -211,6 +211,7 @@ class _DoseList extends StatelessWidget {
               byId[_logId(l.medId, l.plannedAt)] = l.status;
             }
             return ListView.separated(
+              padding: const EdgeInsets.only(bottom: 140),
               itemCount: entries.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (ctx, i) {
@@ -435,4 +436,3 @@ String _logId(String medId, DateTime at) {
   final mm = at.minute.toString().padLeft(2, '0');
   return '$medId@$y$m$d$hh$mm';
 }
-

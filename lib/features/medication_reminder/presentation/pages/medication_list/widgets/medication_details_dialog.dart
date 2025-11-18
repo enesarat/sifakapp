@@ -2,6 +2,7 @@ import 'dart:ui' show HSLColor;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:get_it/get_it.dart';
 
 import 'package:sifakapp/core/navigation/app_routes.dart';
 import '../../../../domain/entities/medication.dart';
@@ -11,6 +12,7 @@ import '../../../blocs/medication/medication_event.dart';
 import '../../../blocs/medication/medication_state.dart';
 import 'confirm_delete_medication_dialog.dart';
 import '../../../../application/plan/auto_time_util.dart';
+import '../../../../domain/repositories/dose_log_repository.dart';
 
 class MedicationDetailsDialog extends StatefulWidget {
   const MedicationDetailsDialog({
@@ -29,8 +31,43 @@ class MedicationDetailsDialog extends StatefulWidget {
 
 class _MedicationDetailsDialogState extends State<MedicationDetailsDialog> {
   bool _isDeleting = false;
+  bool _hasAnyLog = false;
+  bool _checkingLogs = true;
 
   Medication get _med => widget.medication!;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkDoseLogs();
+  }
+
+  Future<void> _checkDoseLogs() async {
+    try {
+      if (!GetIt.I.isRegistered<DoseLogRepository>()) {
+        setState(() {
+          _hasAnyLog = false;
+          _checkingLogs = false;
+        });
+        return;
+      }
+      final repo = GetIt.I<DoseLogRepository>();
+      final now = DateTime.now();
+      final start = _med.startDate;
+      final logs = await repo.getInRange(start, now, medId: _med.id);
+      if (!mounted) return;
+      setState(() {
+        _hasAnyLog = logs.isNotEmpty;
+        _checkingLogs = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _hasAnyLog = false;
+        _checkingLogs = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,6 +173,41 @@ class _MedicationDetailsDialogState extends State<MedicationDetailsDialog> {
                     ),
                     const SizedBox(height: 16),
 
+                    if (_hasAnyLog) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Plana ait doz kullanıldığı için düzenleme yapılamaz.',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
                     // İçerik kartı
                     Container(
                       width: double.infinity,
@@ -229,7 +301,7 @@ class _MedicationDetailsDialogState extends State<MedicationDetailsDialog> {
                         Expanded(
                           child: _PrimaryButton(
                             label: 'Düzenle',
-                            onPressed: _isDeleting
+                            onPressed: _isDeleting || _hasAnyLog
                                 ? null
                                 : () {
                                     Navigator.of(context).pop();

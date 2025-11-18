@@ -417,7 +417,8 @@ class _UpcomingDoseList extends StatelessWidget {
       }
 
       final screenWidth = MediaQuery.of(context).size.width;
-      final itemWidth = screenWidth - 32; // align to page padding
+      // Use ~60% of available width for each card
+      final itemWidth = (screenWidth - 32) * 0.90; // align to page padding, then shrink
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),

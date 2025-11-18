@@ -365,7 +365,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: MedicationSaveButton(onPressed: _submit),
+            child: MedicationSaveButton(onPressed: () { _submit(); }),
           ),
         ),
         body: SingleChildScrollView(
