@@ -13,6 +13,8 @@ import '../../widgets/floating_nav_bar.dart';
 import '../../widgets/glass_floating_nav_bar.dart';
 import '../../widgets/frosted_blob_background.dart';
 import '../../widgets/floating_top_nav_bar.dart';
+import 'package:sifakapp/features/medication_reminder/domain/repositories/dose_log_repository.dart';
+import 'package:sifakapp/features/medication_reminder/domain/entities/dose_log.dart' as dlog;
 
 class MissedDosesPage extends StatefulWidget {
   const MissedDosesPage({super.key, this.fromNotification = false});
@@ -74,25 +76,38 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
       final meds = await getAll();
       final now = DateTime.now();
       final from = now.subtract(const Duration(hours: 24));
-
       final map = <Medication, List<DateTime>>{};
       var total = 0;
 
-      for (final med in meds) {
-        final plan = PlanBuilder.buildOneOffHorizon(
-          med,
-          from: from,
-          to: now,
-        );
+      // Prefer dose logs (skipped) as the source of truth for missed list
+      if (GetIt.I.isRegistered<DoseLogRepository>()) {
+        final logs = await GetIt.I<DoseLogRepository>().getInRange(from, now);
+        final byId = {for (final m in meds) m.id: m};
+        for (final l in logs) {
+          if (l.status != dlog.DoseLogStatus.skipped) continue;
+          final med = byId[l.medId];
+          if (med == null) continue;
+          (map[med] ??= <DateTime>[]).add(l.plannedAt);
+          total += 1;
+        }
+      } else {
+        // Fallback to plan-based horizon if repository is not available
+        for (final med in meds) {
+          final plan = PlanBuilder.buildOneOffHorizon(
+            med,
+            from: from,
+            to: now,
+          );
 
-        final missed = plan.oneOffs
-            .where((o) => !o.scheduledAt.isAfter(now))
-            .map((o) => o.scheduledAt)
-            .toList();
+          final missed = plan.oneOffs
+              .where((o) => !o.scheduledAt.isAfter(now))
+              .map((o) => o.scheduledAt)
+              .toList();
 
-        if (missed.isNotEmpty) {
-          map[med] = missed;
-          total += missed.length;
+          if (missed.isNotEmpty) {
+            map[med] = missed;
+            total += missed.length;
+          }
         }
       }
 

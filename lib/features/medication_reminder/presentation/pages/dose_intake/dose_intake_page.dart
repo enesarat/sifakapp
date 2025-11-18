@@ -17,6 +17,7 @@ import '../../../domain/entities/medication_category.dart';
 import '../../../domain/use_cases/catalog/get_medication_category_by_key.dart';
 import '../../../application/notifications/notification_scheduler.dart';
 import 'widgets/confirm_skip_dialog.dart';
+import '../../../application/plan/notification_id_factory.dart';
 
 class DoseIntakePage extends StatefulWidget {
   final String id;
@@ -32,6 +33,7 @@ class _DoseIntakePageState extends State<DoseIntakePage> {
   Medication? _med;
   bool _loading = true;
   bool _processing = false;
+  DateTime? _lastResolvedOccurrenceAt;
 
   @override
   void initState() {
@@ -141,11 +143,31 @@ class _DoseIntakePageState extends State<DoseIntakePage> {
   }
 
   Future<void> _dismissIfNeeded() async {
-    final id = widget.notifId;
-    if (id == null) return;
+    final sched = GetIt.I<NotificationScheduler>();
+    // Prefer direct notif id if provided
+    final directId = widget.notifId;
+    if (directId != null) {
+      try {
+        await sched.dismissDelivered(directId);
+      } catch (_) {}
+      return;
+    }
+
+    // Best-effort: if we can infer the occurrence and medication, try dismissing
+    // the matching scheduled/delivered notification id for this slot.
+    final med = _med;
+    final plannedAt = _lastResolvedOccurrenceAt;
+    if (med == null || plannedAt == null) return;
     try {
-      final sched = GetIt.I<NotificationScheduler>();
-      await sched.dismissDelivered(id);
+      final minutes = plannedAt.hour * 60 + plannedAt.minute;
+      final inferredId = med.isEveryDay
+          ? dailyId(medId: med.id, minutesSinceMidnight: minutes)
+          : weeklyId(
+              medId: med.id,
+              weekday: plannedAt.weekday,
+              minutesSinceMidnight: minutes,
+            );
+      await sched.dismissDelivered(inferredId);
     } catch (_) {}
   }
 
@@ -287,10 +309,13 @@ class _DoseIntakePageState extends State<DoseIntakePage> {
                       onPressed: canConsume
                           ? () {
                               setState(() => _processing = true);
+                              // Resolve occurrence for logging even for manual intakes
+                              final occ = widget.occurrenceAt ?? _resolveOccurrenceForAction(med);
+                              _lastResolvedOccurrenceAt = occ;
                               context.read<MedicationBloc>().add(
                                     ev.ConsumeMedicationDose(
                                       med.id,
-                                      occurrenceAt: widget.occurrenceAt,
+                                      occurrenceAt: occ,
                                     ),
                                   );
                             }
@@ -323,11 +348,13 @@ class _DoseIntakePageState extends State<DoseIntakePage> {
                               final ok = await showConfirmSkipDoseDialog(context);
                               if (ok == true) {
                                 setState(() => _processing = true);
-                                // Skip
+                                // Skip with resolved occurrence (manual support)
+                                final occ = widget.occurrenceAt ?? _resolveOccurrenceForAction(med);
+                                _lastResolvedOccurrenceAt = occ;
                                 context.read<MedicationBloc>().add(
                                       ev.SkipMedicationDose(
                                         med.id,
-                                        occurrenceAt: widget.occurrenceAt,
+                                        occurrenceAt: occ,
                                       ),
                                     );
                               }
@@ -360,6 +387,39 @@ class _DoseIntakePageState extends State<DoseIntakePage> {
         ),
       ),
     );
+  }
+
+  // Resolve a suitable occurrence time near now for logging when not opened from a notif.
+  DateTime _resolveOccurrenceForAction(Medication m) {
+    final now = DateTime.now();
+    // Build a small horizon around now to pick the nearest slot
+    final plan = PlanBuilder.buildOneOffHorizon(
+      m,
+      from: now.subtract(const Duration(hours: 12)),
+      to: now.add(const Duration(hours: 12)),
+    );
+    if (plan.oneOffs.isEmpty) {
+      return now;
+    }
+    // Prefer latest past occurrence; else nearest future
+    DateTime? latestPast;
+    DateTime? nearestFuture;
+    Duration futureDelta = const Duration(days: 365);
+    for (final o in plan.oneOffs) {
+      final at = o.scheduledAt;
+      if (!at.isAfter(now)) {
+        if (latestPast == null || at.isAfter(latestPast)) {
+          latestPast = at;
+        }
+      } else {
+        final d = at.difference(now);
+        if (d < futureDelta) {
+          futureDelta = d;
+          nearestFuture = at;
+        }
+      }
+    }
+    return latestPast ?? nearestFuture ?? plan.oneOffs.first.scheduledAt;
   }
 
   Future<String?> _friendlyTypeLabel(Medication m) async {
