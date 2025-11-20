@@ -11,7 +11,7 @@ class SkipDoseOccurrence {
       medId: medId,
       plannedAt: plannedAt,
       resolvedAt: DateTime.now(),
-      status: DoseLogStatus.skipped,
+      status: DoseLogStatus.passed,
     );
     await logs.upsert(log);
   }
@@ -25,4 +25,3 @@ String _idFor(String medId, DateTime at) {
   final mm = at.minute.toString().padLeft(2, '0');
   return '$medId@$y$m$d$hh$mm';
 }
-

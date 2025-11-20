@@ -1,4 +1,13 @@
-enum DoseLogStatus { taken, skipped }
+enum DoseLogStatus {
+  /// Doz zamanında veya sonradan kullanıcı tarafından alındı.
+  taken,
+
+  /// Kullanıcı hiçbir işlem yapmadı; sistem tarafından kaçırıldı olarak işaretlendi.
+  missed,
+
+  /// Kullanıcı bilerek “Atla” vb. aksiyonla pas geçti.
+  passed,
+}
 
 class DoseLog {
   final String id; // medId@yyyyMMddHHmm
@@ -15,4 +24,3 @@ class DoseLog {
     required this.status,
   });
 }
-

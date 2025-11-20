@@ -47,7 +47,6 @@ void callbackDispatcher() {
       final now = DateTime.now();
       final from = now.subtract(const Duration(hours: 24));
 
-      var missedCount = 0;
       final logsRepo = DoseLogRepositoryImpl(logsBox);
       for (final med in meds) {
         final plan = PlanBuilder.buildOneOffHorizon(
@@ -56,7 +55,6 @@ void callbackDispatcher() {
           to: now,
         );
         final missed = plan.oneOffs.where((o) => !o.scheduledAt.isAfter(now));
-        missedCount += missed.length;
 
         // Yazılmamış kaçanları skipped olarak logla
         for (final o in missed) {
@@ -68,12 +66,17 @@ void callbackDispatcher() {
               medId: med.id,
               plannedAt: o.scheduledAt,
               resolvedAt: DateTime.now(),
-              status: DoseLogStatus.skipped,
+              status: DoseLogStatus.missed,
             );
             await logsRepo.upsert(log);
           }
         }
       }
+
+      // Gerçek kaçan doz sayısını (skipped log'lar) hesapla
+      final logsInRange = await logsRepo.getInRange(from, now);
+      final missedCount =
+          logsInRange.where((l) => l.status == DoseLogStatus.missed).length;
 
       // Snooze baseline: notify only if count increased since last baseline
       final prefs = await Hive.openBox('app_prefs');

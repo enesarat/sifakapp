@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 
@@ -329,9 +329,9 @@ class _ActionButton extends StatelessWidget {
         enabled: false,
       );
     }
-    if (status == dlog.DoseLogStatus.skipped) {
+    if (status == dlog.DoseLogStatus.missed || status == dlog.DoseLogStatus.passed) {
       return _pillButton(
-        label: 'Atlandı',
+        label: status == dlog.DoseLogStatus.passed ? 'Pas geçildi' : 'Kaçırıldı',
         bg: Theme.of(context).brightness == Brightness.light ? Colors.black12 : Colors.white10,
         fg: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white70,
         enabled: false,

@@ -14,8 +14,10 @@ model.DoseLogStatusModel toModelStatus(domain.DoseLogStatus s) {
   switch (s) {
     case domain.DoseLogStatus.taken:
       return model.DoseLogStatusModel.taken;
-    case domain.DoseLogStatus.skipped:
-      return model.DoseLogStatusModel.skipped;
+    case domain.DoseLogStatus.missed:
+      return model.DoseLogStatusModel.missed;
+    case domain.DoseLogStatus.passed:
+      return model.DoseLogStatusModel.passed;
   }
 }
 
@@ -23,8 +25,10 @@ domain.DoseLogStatus toDomainStatus(model.DoseLogStatusModel s) {
   switch (s) {
     case model.DoseLogStatusModel.taken:
       return domain.DoseLogStatus.taken;
-    case model.DoseLogStatusModel.skipped:
-      return domain.DoseLogStatus.skipped;
+    case model.DoseLogStatusModel.missed:
+      return domain.DoseLogStatus.missed;
+    case model.DoseLogStatusModel.passed:
+      return domain.DoseLogStatus.passed;
   }
 }
 
@@ -47,4 +51,3 @@ domain.DoseLog toEntity(model.DoseLogModel m) {
     status: toDomainStatus(m.status),
   );
 }
-

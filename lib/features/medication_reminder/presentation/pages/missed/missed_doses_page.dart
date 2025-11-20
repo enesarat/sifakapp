@@ -9,6 +9,7 @@ import 'package:sifakapp/core/ui/spacing.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication.dart';
 import 'package:sifakapp/features/medication_reminder/domain/entities/medication_category.dart';
 import 'package:sifakapp/features/medication_reminder/domain/use_cases/get_all_medications.dart';
+import 'package:sifakapp/features/medication_reminder/domain/use_cases/catalog/get_medication_category_by_key.dart';
 import '../../widgets/floating_nav_bar.dart';
 import '../../widgets/glass_floating_nav_bar.dart';
 import '../../widgets/frosted_blob_background.dart';
@@ -79,12 +80,15 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
       final map = <Medication, List<DateTime>>{};
       var total = 0;
 
-      // Prefer dose logs (skipped) as the source of truth for missed list
+      // Prefer dose logs as the source of truth for missed list
       if (GetIt.I.isRegistered<DoseLogRepository>()) {
         final logs = await GetIt.I<DoseLogRepository>().getInRange(from, now);
         final byId = {for (final m in meds) m.id: m};
         for (final l in logs) {
-          if (l.status != dlog.DoseLogStatus.skipped) continue;
+          // Hem sistemin işaretlediği missed, hem de kullanıcının pas geçtiği
+          // passed log'larını göster.
+          if (l.status != dlog.DoseLogStatus.missed &&
+              l.status != dlog.DoseLogStatus.passed) continue;
           final med = byId[l.medId];
           if (med == null) continue;
           (map[med] ??= <DateTime>[]).add(l.plannedAt);
@@ -384,11 +388,19 @@ class _MissedCard extends StatelessWidget {
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        med.type.isNotEmpty ? '1 ${med.type}' : '1 Doz',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: pal.primary,
-                            ),
+                      FutureBuilder<String?>(
+                        future: _friendlyTypeLabelFor(med),
+                        builder: (ctx, snap) {
+                          final label = snap.data ?? med.type;
+                          final text = label.isNotEmpty ? '1 $label' : '1 Doz';
+                          return Text(
+                            text,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: pal.primary),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -408,12 +420,23 @@ class _MissedCard extends StatelessWidget {
                   Icon(Icons.schedule, color: pal.amberSubtext),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      labelBuilder(time),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w500),
+                    child: FutureBuilder<dlog.DoseLog?>(
+                      future: GetIt.I<DoseLogRepository>()
+                          .getByOccurrence(med.id, time),
+                      builder: (ctx, snap) {
+                        final st = snap.data?.status;
+                        var txt = labelBuilder(time);
+                        if (st == dlog.DoseLogStatus.passed) {
+                          txt = txt.replaceFirst('kaçırıldı', 'pas geçildi');
+                        }
+                        return Text(
+                          txt,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w500),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -472,6 +495,18 @@ class _EmptyState extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+Future<String?> _friendlyTypeLabelFor(Medication m) async {
+  final key = _deriveCategoryKeyFromType(m.type);
+  if (key == null) return m.type;
+  try {
+    final getByKey = GetIt.I<GetMedicationCategoryByKey>();
+    final cat = await getByKey(key);
+    return cat?.label;
+  } catch (_) {
+    return m.type;
   }
 }
 

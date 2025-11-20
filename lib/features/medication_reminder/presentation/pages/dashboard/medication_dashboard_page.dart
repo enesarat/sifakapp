@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'dart:ui' show ImageFilter;
@@ -214,11 +214,15 @@ class _TodayProgressRing extends StatelessWidget {
           builder: (context, snap) {
             final list = snap.data ?? const <dlog.DoseLog>[];
             final taken = list.where((l) => l.status == dlog.DoseLogStatus.taken).length;
-            final skipped = list.where((l) => l.status == dlog.DoseLogStatus.skipped).length;
+            final missed = list.where((l) => l.status == dlog.DoseLogStatus.missed).length;
+            final passed = list.where((l) => l.status == dlog.DoseLogStatus.passed).length;
             final pct = planned == 0 ? 0.0 : (taken / planned).clamp(0.0, 1.0);
             final skippedColor = Theme.of(context).brightness == Brightness.light
-                ? const Color(0xFFEF9A9A) // red200 (pastel)
-                : const Color(0xFFE57373); // red300 (pastel-ish)
+                ? const Color(0xFFEF9A9A)
+                : const Color(0xFFE57373);
+            final passedColor = Theme.of(context).brightness == Brightness.light
+                ? const Color(0xFFB39DDB) // deep purple 200 (pastel)
+                : const Color(0xFF9575CD); // deep purple 300 (slightly darker)
 
             return _ProgressRing(
               progress: pct,
@@ -231,7 +235,9 @@ class _TodayProgressRing extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text('$taken / $planned Alındı', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
                   const SizedBox(height: 2),
-                  Text('Atlandı: $skipped', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: skippedColor)),
+                  Text('Kaçırılan: $missed', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: skippedColor, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 2),
+                  Text('Pas geçilen: $passed', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: passedColor, fontWeight: FontWeight.w900)),
                 ],
               ),
             );
@@ -254,7 +260,6 @@ class _TodayProgressRing extends StatelessWidget {
     return m.dailyDosage;
   }
 }
-
 class _ProgressRing extends StatelessWidget {
   const _ProgressRing({required this.progress, required this.size, required this.stroke, required this.center});
   final double progress; // 0..1
@@ -606,3 +611,6 @@ MedicationCategoryKey? _deriveCategoryKeyFromType(String value) {
   }
   return null;
 }
+
+
+

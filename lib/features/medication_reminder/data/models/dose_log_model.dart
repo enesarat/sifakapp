@@ -5,7 +5,9 @@ enum DoseLogStatusModel {
   @HiveField(0)
   taken,
   @HiveField(1)
-  skipped,
+  missed,
+  @HiveField(2)
+  passed,
 }
 
 @HiveType(typeId: 9)
@@ -46,7 +48,10 @@ class DoseLogStatusModelAdapter extends TypeAdapter<DoseLogStatusModel> {
       case 0:
         return DoseLogStatusModel.taken;
       case 1:
-        return DoseLogStatusModel.skipped;
+        // Eski verilerde 1 = skipped idi; bunları missed olarak yorumla.
+        return DoseLogStatusModel.missed;
+      case 2:
+        return DoseLogStatusModel.passed;
     }
     return DoseLogStatusModel.taken;
   }
