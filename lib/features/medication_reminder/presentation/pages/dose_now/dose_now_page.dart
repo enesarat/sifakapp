@@ -174,16 +174,47 @@ class _DoseList extends StatelessWidget {
         final now = DateTime.now();
         final start = DateTime(now.year, now.month, now.day);
         final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+        final tomorrowStart = start.add(const Duration(days: 1));
+        final tomorrowEnd = end.add(const Duration(days: 1));
 
         final entries = <_DoseEntry>[];
         for (final m in state.medications) {
           final key = _deriveCategoryKeyFromType(m.type);
           if (key != selectedKey) continue;
 
+          // Build today's occurrences and filter out times before creation time (same-day creation)
           final plan = PlanBuilder.buildOneOffHorizon(m, from: start, to: end);
+          DateTime? createdAt;
+          final idMillis = int.tryParse(m.id);
+          if (idMillis != null) {
+            createdAt = DateTime.fromMillisecondsSinceEpoch(idMillis);
+          }
           for (final o in plan.oneOffs) {
-            if (o.scheduledAt.isBefore(start) || o.scheduledAt.isAfter(end)) continue;
-            entries.add(_DoseEntry(med: m, at: o.scheduledAt));
+            final at = o.scheduledAt;
+            if (at.isBefore(start) || at.isAfter(end)) continue;
+            // If medication created today after some slots, skip earlier ones
+            final createdSameDay = createdAt != null &&
+                createdAt.year == start.year &&
+                createdAt.month == start.month &&
+                createdAt.day == start.day;
+            if (createdSameDay && !at.isAfter(createdAt)) {
+              continue;
+            }
+            entries.add(_DoseEntry(med: m, at: at));
+          }
+
+          // If startDate is tomorrow, also surface tomorrow's entries as preview (disabled action)
+          final sd = m.startDate;
+          final isTomorrowStart = sd.year == tomorrowStart.year &&
+              sd.month == tomorrowStart.month &&
+              sd.day == tomorrowStart.day;
+          if (isTomorrowStart) {
+            final tomorrowPlan = PlanBuilder.buildOneOffHorizon(m, from: tomorrowStart, to: tomorrowEnd);
+            for (final o in tomorrowPlan.oneOffs) {
+              final at = o.scheduledAt;
+              if (at.isBefore(tomorrowStart) || at.isAfter(tomorrowEnd)) continue;
+              entries.add(_DoseEntry(med: m, at: at));
+            }
           }
         }
 
@@ -321,6 +352,11 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final tomorrowStart = todayStart.add(const Duration(days: 1));
+    final tomorrowEnd = DateTime(tomorrowStart.year, tomorrowStart.month, tomorrowStart.day, 23, 59, 59, 999);
+
     if (status == dlog.DoseLogStatus.taken) {
       return _pillButton(
         label: 'Kullanıldı',
@@ -334,6 +370,21 @@ class _ActionButton extends StatelessWidget {
         label: status == dlog.DoseLogStatus.passed ? 'Pas geçildi' : 'Kaçırıldı',
         bg: Theme.of(context).brightness == Brightness.light ? Colors.black12 : Colors.white10,
         fg: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white70,
+        enabled: false,
+      );
+    }
+
+    // If this occurrence is tomorrow, show disabled 'Yarın' button in pastel dark blue
+    final at = entry.at;
+    final isTomorrow = !at.isBefore(tomorrowStart) && !at.isAfter(tomorrowEnd);
+    if (isTomorrow) {
+      final blue = Theme.of(context).brightness == Brightness.light
+          ? const Color(0xFF5C6BC0) // Indigo 400
+          : const Color(0xFF3949AB); // Indigo 600 for dark
+      return _pillButton(
+        label: 'Yarın',
+        bg: blue,
+        fg: Colors.white,
         enabled: false,
       );
     }

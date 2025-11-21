@@ -15,6 +15,7 @@ class DoseLog {
   final DateTime plannedAt; // local wall-clock occurrence time
   final DateTime resolvedAt; // when user acted or worker marked
   final DoseLogStatus status;
+  final bool acknowledged; // Susturulmuş/okundu (listelenmesin/yeniden bildirilmesin)
 
   const DoseLog({
     required this.id,
@@ -22,5 +23,6 @@ class DoseLog {
     required this.plannedAt,
     required this.resolvedAt,
     required this.status,
+    this.acknowledged = false,
   });
 }

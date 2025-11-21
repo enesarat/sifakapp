@@ -44,11 +44,34 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
 
     try {
       final prefs = await Hive.openBox('app_prefs');
-      await prefs.put('missed_baseline', _totalMissed);
+      await prefs.put('missed_baseline', 0);
       await prefs.put(
         'missed_baseline_set_at',
         DateTime.now().millisecondsSinceEpoch,
       );
+    } catch (_) {}
+
+    // Ayrıca ekranda görünen kaçırılan dozları "okundu/susturuldu" olarak işaretle
+    try {
+      if (GetIt.I.isRegistered<DoseLogRepository>()) {
+        final logsRepo = GetIt.I<DoseLogRepository>();
+        final now = DateTime.now();
+        final from = now.subtract(const Duration(hours: 24));
+        final logs = await logsRepo.getInRange(from, now);
+        for (final l in logs) {
+          if (l.status == dlog.DoseLogStatus.missed && !l.acknowledged) {
+            final updated = dlog.DoseLog(
+              id: l.id,
+              medId: l.medId,
+              plannedAt: l.plannedAt,
+              resolvedAt: l.resolvedAt,
+              status: l.status,
+              acknowledged: true,
+            );
+            await logsRepo.upsert(updated);
+          }
+        }
+      }
     } catch (_) {}
 
     if (!mounted) return;
@@ -63,6 +86,8 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
 
     if (!mounted) return;
     setState(() => _clearing = false);
+    // Listeyi güncelle
+    await _load();
   }
 
   @override
@@ -89,6 +114,8 @@ class _MissedDosesPageState extends State<MissedDosesPage> {
           // passed log'larını göster.
           if (l.status != dlog.DoseLogStatus.missed &&
               l.status != dlog.DoseLogStatus.passed) continue;
+          // Susturulmuş (acknowledged) missed olanları listede göstermeyelim
+          if (l.status == dlog.DoseLogStatus.missed && l.acknowledged) continue;
           final med = byId[l.medId];
           if (med == null) continue;
           (map[med] ??= <DateTime>[]).add(l.plannedAt);

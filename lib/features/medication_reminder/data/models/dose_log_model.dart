@@ -27,12 +27,16 @@ class DoseLogModel extends HiveObject {
   @HiveField(4)
   final DoseLogStatusModel status;
 
+  @HiveField(5)
+  final bool acknowledged;
+
   DoseLogModel({
     required this.id,
     required this.medId,
     required this.plannedAt,
     required this.resolvedAt,
     required this.status,
+    this.acknowledged = false,
   });
 }
 
@@ -79,13 +83,14 @@ class DoseLogModelAdapter extends TypeAdapter<DoseLogModel> {
       plannedAt: fields[2] as DateTime,
       resolvedAt: fields[3] as DateTime,
       status: fields[4] as DoseLogStatusModel,
+      acknowledged: (fields[5] as bool?) ?? false,
     );
   }
 
   @override
   void write(BinaryWriter writer, DoseLogModel obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -95,6 +100,8 @@ class DoseLogModelAdapter extends TypeAdapter<DoseLogModel> {
       ..writeByte(3)
       ..write(obj.resolvedAt)
       ..writeByte(4)
-      ..write(obj.status);
+      ..write(obj.status)
+      ..writeByte(5)
+      ..write(obj.acknowledged);
   }
 }

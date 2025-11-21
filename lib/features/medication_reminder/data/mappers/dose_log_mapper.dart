@@ -39,6 +39,7 @@ model.DoseLogModel toModel(domain.DoseLog e) {
     plannedAt: e.plannedAt,
     resolvedAt: e.resolvedAt,
     status: toModelStatus(e.status),
+    acknowledged: e.acknowledged,
   );
 }
 
@@ -49,5 +50,6 @@ domain.DoseLog toEntity(model.DoseLogModel m) {
     plannedAt: m.plannedAt,
     resolvedAt: m.resolvedAt,
     status: toDomainStatus(m.status),
+    acknowledged: m.acknowledged,
   );
 }
