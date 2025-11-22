@@ -14,8 +14,9 @@ class GlassFloatingNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glass = isLight ? Colors.white.withOpacity(0.40) : cs.surface.withOpacity(0.50);
-    final borderColor = Colors.white.withOpacity(isLight ? 0.50 : 0.15);
+    // Align styling with Dashboard bottom bar
+    final glass = isLight ? Colors.white.withOpacity(0.60) : cs.surface.withOpacity(0.60);
+    final borderColor = Colors.white.withOpacity(isLight ? 0.30 : 0.15);
 
     return SizedBox(
       height: 96,

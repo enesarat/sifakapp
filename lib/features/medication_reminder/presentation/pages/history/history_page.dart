@@ -38,8 +38,6 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    // Keep gap under top nav equal to the fade distance below tabs
-    const double kTopFade = 6.0; // px
     return Scaffold(
       backgroundColor: cs.surface,
       appBar: null,
@@ -60,8 +58,8 @@ class _HistoryPageState extends State<HistoryPage> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                // Top padding = nav top margin (8) + nav height (56) + desired gap (kTopFade)
-                padding: AppSpacing.pageInsets(context: context, top: 64 + kTopFade, bottom: 0),
+                // Restore original top padding
+                padding: AppSpacing.pageInsets(context: context, top: 84, bottom: 0),
                 child: Column(
                   children: [
                     _HistoryTabBar(
@@ -72,6 +70,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     Expanded(
                       child: LayoutBuilder(
                         builder: (context, constraints) {
+                          const double kTopFade = 6.0; // px
                           return ShaderMask(
                             shaderCallback: (rect) {
                               final h = rect.height == 0 ? 1.0 : rect.height;

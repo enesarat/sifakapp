@@ -3,14 +3,16 @@ import 'dart:ui' show ImageFilter;
 
 /// Reusable frosted/blurred colorful blob background used across pages.
 class FrostedBlobBackground extends StatelessWidget {
-  const FrostedBlobBackground({super.key});
+  const FrostedBlobBackground({super.key, this.excludeBottom = 0});
+
+  // Pixels to keep clear at the bottom (e.g., behind floating nav bar)
+  final double excludeBottom;
 
   @override
   Widget build(BuildContext context) {
     final surface = Theme.of(context).colorScheme.surface;
-    return IgnorePointer(
-      child: Stack(
-        children: [
+    final stack = Stack(
+      children: [
           // Soft base gradient to blend with app surface
           Positioned.fill(
             child: DecoratedBox(
@@ -23,6 +25,15 @@ class FrostedBlobBackground extends StatelessWidget {
                     surface.withOpacity(0.95),
                   ],
                 ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.light
+                    ? const Color.fromARGB(255, 194, 243, 246).withOpacity(0.55)
+                    : Colors.black.withOpacity(0.12),
               ),
             ),
           ),
@@ -64,7 +75,12 @@ class FrostedBlobBackground extends StatelessWidget {
             ),
           ),
         ],
-      ),
+    );
+
+    return IgnorePointer(
+      child: excludeBottom > 0
+          ? Padding(padding: EdgeInsets.only(bottom: excludeBottom), child: stack)
+          : stack,
     );
   }
 
@@ -98,4 +114,3 @@ class FrostedBlobBackground extends StatelessWidget {
     );
   }
 }
-
