@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'dart:ui' show BlendMode;
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:hive/hive.dart';
 import 'package:go_router/go_router.dart';
@@ -37,6 +38,8 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    // Keep gap under top nav equal to the fade distance below tabs
+    const double kTopFade = 6.0; // px
     return Scaffold(
       backgroundColor: cs.surface,
       appBar: null,
@@ -57,21 +60,49 @@ class _HistoryPageState extends State<HistoryPage> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: AppSpacing.pageInsets(context: context, top: 84, bottom: 0),
-                child: ListView(
+                // Top padding = nav top margin (8) + nav height (56) + desired gap (kTopFade)
+                padding: AppSpacing.pageInsets(context: context, top: 64 + kTopFade, bottom: 0),
+                child: Column(
                   children: [
                     _HistoryTabBar(
                       index: _index,
                       onChanged: (i) => setState(() => _index = i),
                     ),
                     const SizedBox(height: 12),
-                    if (_index == 0)
-                      _MissedTab(fromNotification: widget.fromNotification)
-                    else if (_index == 1)
-                      const _PassedTab()
-                    else
-                      const _TakenTab(),
-                    const SizedBox(height: 120),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return ShaderMask(
+                            shaderCallback: (rect) {
+                              final h = rect.height == 0 ? 1.0 : rect.height;
+                              final t = (kTopFade / h).clamp(0.0, 1.0);
+                              return LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: const [
+                                  Color(0x00000000), // transparent
+                                  Color(0xFF000000), // opaque
+                                  Color(0xFF000000),
+                                ],
+                                stops: [0.0, t, 1.0],
+                              ).createShader(Rect.fromLTWH(0, 0, rect.width, rect.height));
+                            },
+                            blendMode: BlendMode.dstIn,
+                            child: SingleChildScrollView(
+                              padding: EdgeInsets.only(
+                                top: _index == 0 ? kTopFade : 0.0, // only for Missed tab
+                                bottom: 120,
+                              ),
+                              child: (_index == 0)
+                                  ? _MissedTab(fromNotification: widget.fromNotification)
+                                  : (_index == 1)
+                                      ? const _PassedTab()
+                                      : const _TakenTab(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ),
