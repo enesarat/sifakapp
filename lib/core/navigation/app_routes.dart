@@ -19,7 +19,8 @@ import 'package:sifakapp/features/medication_reminder/presentation/pages/dashboa
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/medication_details_dialog.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/confirm_delete_medication_dialog.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/medication_list/widgets/delete_medication_dialog.dart';
-import 'package:sifakapp/features/medication_reminder/presentation/pages/missed/missed_doses_page.dart';
+// import 'package:sifakapp/features/medication_reminder/presentation/pages/missed/missed_doses_page.dart';
+import 'package:sifakapp/features/medication_reminder/presentation/pages/history/history_page.dart';
 import 'package:sifakapp/features/medication_reminder/presentation/pages/dose_now/dose_now_page.dart';
 
 part 'app_routes.g.dart';
@@ -154,7 +155,7 @@ class MissedDosesRoute extends GoRouteData {
   Widget build(BuildContext context, GoRouterState state) {
     final src = state.uri.queryParameters['src'];
     final fromNotif = src == 'notif';
-    return MissedDosesPage(fromNotification: fromNotif);
+    return HistoryPage(initialIndex: 0, fromNotification: fromNotif);
   }
 }
 
