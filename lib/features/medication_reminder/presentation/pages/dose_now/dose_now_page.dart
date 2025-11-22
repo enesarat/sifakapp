@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'dart:ui' show BlendMode;
 
 import 'package:sifakapp/core/ui/spacing.dart';
 import 'package:sifakapp/core/navigation/app_routes.dart';
@@ -134,9 +135,31 @@ class _DoseNowPageState extends State<DoseNowPage> {
                   ),
                   const SizedBox(height: 12),
                   Expanded(
-                    child: Padding(
-                      padding: AppSpacing.pageInsets(context: context, top: 0, bottom: 0),
-                      child: _DoseList(selectedKey: _selectedKey),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        const double kTopFade = 12.0; // px, match History
+                        return ShaderMask(
+                          shaderCallback: (rect) {
+                            final h = rect.height == 0 ? 1.0 : rect.height;
+                            final t = (kTopFade / h).clamp(0.0, 1.0);
+                            return LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: const [
+                                Color(0x00000000), // transparent
+                                Color(0xFF000000), // opaque
+                                Color(0xFF000000),
+                              ],
+                              stops: [0.0, t, 1.0],
+                            ).createShader(Rect.fromLTWH(0, 0, rect.width, rect.height));
+                          },
+                          blendMode: BlendMode.dstIn,
+                          child: Padding(
+                            padding: AppSpacing.pageInsets(context: context, top: 0, bottom: 0),
+                            child: _DoseList(selectedKey: _selectedKey, topPadding: kTopFade),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -156,8 +179,9 @@ class _DoseNowPageState extends State<DoseNowPage> {
 }
 
 class _DoseList extends StatelessWidget {
-  const _DoseList({required this.selectedKey});
+  const _DoseList({required this.selectedKey, this.topPadding = 0});
   final MedicationCategoryKey? selectedKey;
+  final double topPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -242,7 +266,7 @@ class _DoseList extends StatelessWidget {
               byId[_logId(l.medId, l.plannedAt)] = l.status;
             }
             return ListView.separated(
-              padding: const EdgeInsets.only(bottom: 140),
+              padding: EdgeInsets.only(top: topPadding, bottom: 140),
               itemCount: entries.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (ctx, i) {

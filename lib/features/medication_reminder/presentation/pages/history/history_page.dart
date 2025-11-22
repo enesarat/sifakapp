@@ -34,6 +34,26 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   late int _index = widget.initialIndex;
+  late final PageController _pageController = PageController(initialPage: _index);
+  double _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _page = _index.toDouble();
+    _pageController.addListener(() {
+      final p = _pageController.page;
+      if (p != null && p != _page) {
+        setState(() => _page = p);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,48 +78,80 @@ class _HistoryPageState extends State<HistoryPage> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                // Restore original top padding
-                padding: AppSpacing.pageInsets(context: context, top: 84, bottom: 0),
+                // Remove horizontal padding so PageView/cards can reach screen edges
+                padding: const EdgeInsets.only(top: 84),
                 child: Column(
                   children: [
-                    _HistoryTabBar(
-                      index: _index,
-                      onChanged: (i) => setState(() => _index = i),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onHorizontalDragEnd: (details) {
+                        final v = details.primaryVelocity ?? 0;
+                        if (v.abs() < 150) return;
+                        final target = v < 0 ? (_index - 1).clamp(0, 2) : (_index + 1).clamp(0, 2);
+                        if (target != _index) {
+                          _pageController.animateToPage(
+                            target as int,
+                            duration: const Duration(milliseconds: 280),
+                            curve: Curves.easeOutCubic,
+                          );
+                        }
+                      },
+                      child: _HistoryTabBar(
+                        index: _index,
+                        page: _page,
+                        onChanged: (i) => _pageController.animateToPage(
+                          i,
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeOutCubic,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          const double kTopFade = 6.0; // px
-                          return ShaderMask(
-                            shaderCallback: (rect) {
-                              final h = rect.height == 0 ? 1.0 : rect.height;
-                              final t = (kTopFade / h).clamp(0.0, 1.0);
-                              return LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: const [
-                                  Color(0x00000000), // transparent
-                                  Color(0xFF000000), // opaque
-                                  Color(0xFF000000),
-                                ],
-                                stops: [0.0, t, 1.0],
-                              ).createShader(Rect.fromLTWH(0, 0, rect.width, rect.height));
-                            },
-                            blendMode: BlendMode.dstIn,
-                            child: SingleChildScrollView(
-                              padding: EdgeInsets.only(
-                                top: _index == 0 ? kTopFade : 0.0, // only for Missed tab
-                                bottom: 120,
+                      child: PageView(
+                        controller: _pageController,
+                        onPageChanged: (p) => setState(() => _index = p),
+                        children: [
+                          LayoutBuilder(builder: (context, _) {
+                            const double kTopFade = 12.0; // match previous
+                            final double hPad = AppSpacing.pageH(context);
+                            return ShaderMask(
+                              shaderCallback: (rect) {
+                                final h = rect.height == 0 ? 1.0 : rect.height;
+                                final t = (kTopFade / h).clamp(0.0, 1.0);
+                                return LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: const [
+                                    Color(0x00000000),
+                                    Color(0xFF000000),
+                                    Color(0xFF000000),
+                                  ],
+                                  stops: [0.0, t, 1.0],
+                                ).createShader(Rect.fromLTWH(0, 0, rect.width, rect.height));
+                              },
+                              blendMode: BlendMode.dstIn,
+                              child: SingleChildScrollView(
+                                padding: EdgeInsets.fromLTRB(hPad, kTopFade, hPad, 120),
+                                child: _MissedTab(fromNotification: widget.fromNotification),
                               ),
-                              child: (_index == 0)
-                                  ? _MissedTab(fromNotification: widget.fromNotification)
-                                  : (_index == 1)
-                                      ? const _PassedTab()
-                                      : const _TakenTab(),
-                            ),
-                          );
-                        },
+                              );
+                          }),
+                          LayoutBuilder(builder: (context, _) {
+                            final double hPad = AppSpacing.pageH(context);
+                            return SingleChildScrollView(
+                              padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 120),
+                              child: const _PassedTab(),
+                            );
+                          }),
+                          LayoutBuilder(builder: (context, _) {
+                            final double hPad = AppSpacing.pageH(context);
+                            return SingleChildScrollView(
+                              padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 120),
+                              child: const _TakenTab(),
+                            );
+                          }),
+                        ],
                       ),
                     ),
                   ],
@@ -121,9 +173,10 @@ class _HistoryPageState extends State<HistoryPage> {
 }
 
 class _HistoryTabBar extends StatelessWidget {
-  const _HistoryTabBar({required this.index, required this.onChanged});
+  const _HistoryTabBar({required this.index, required this.onChanged, required this.page});
   final int index;
   final ValueChanged<int> onChanged;
+  final double page;
 
   @override
   Widget build(BuildContext context) {
@@ -134,6 +187,10 @@ class _HistoryTabBar extends StatelessWidget {
 
     Widget seg(String text, int i) {
       final selected = i == index;
+      final double weight = (1.0 - (page - i).abs()).clamp(0.0, 1.0);
+      final Color unselectedText = Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.85) ??
+          (Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white70);
+      final Color textColor = Color.lerp(unselectedText, Colors.white, weight) ?? unselectedText;
       return Expanded(
         child: InkWell(
           borderRadius: BorderRadius.circular(99),
@@ -142,13 +199,13 @@ class _HistoryTabBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: selected ? cs.primary : Colors.transparent,
+              color: Color.lerp(Colors.transparent, cs.primary, weight),
               borderRadius: BorderRadius.circular(99),
-              boxShadow: selected
+              boxShadow: weight > 0.01
                   ? [
                       BoxShadow(
-                        color: cs.primary.withOpacity(0.35),
-                        blurRadius: 12,
+                        color: cs.primary.withOpacity(0.35 * weight),
+                        blurRadius: 12 * weight,
                         offset: const Offset(0, 4),
                       )
                     ]
@@ -157,9 +214,7 @@ class _HistoryTabBar extends StatelessWidget {
             child: Text(
               text,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: selected
-                        ? Colors.white
-                        : (Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.85)),
+                    color: textColor,
                     fontWeight: FontWeight.w700,
                   ),
             ),
@@ -188,6 +243,7 @@ class _HistoryTabBar extends StatelessWidget {
     );
   }
 }
+
 
 class _PlaceholderTab extends StatelessWidget {
   const _PlaceholderTab({required this.label});
